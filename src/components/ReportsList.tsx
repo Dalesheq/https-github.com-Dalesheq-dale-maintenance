@@ -20,6 +20,7 @@ import { Report, ReportType } from '../types';
 import { REPORT_TEMPLATES, ReportTemplate } from '../data/reportTemplates';
 import { generateDaleAutomationPDF } from '../utils/pdfGenerator';
 import { storageService } from '../services/storageService';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 interface ReportsListProps {
   reports: Report[];
@@ -44,18 +45,14 @@ export const ReportsList: React.FC<ReportsListProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'submitted' | 'draft' | 'urgent'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
 
   const currentUser = storageService.getCurrentUser();
   const isAdmin = currentUser.role === 'admin';
 
-  const handleDelete = (e: React.MouseEvent, report: Report) => {
+  const handleDeleteClick = (e: React.MouseEvent, report: Report) => {
     e.stopPropagation();
-    const confirmed = window.confirm(
-      `ADMIN ACTION: Are you sure you want to permanently delete report "${report.reportNumber}" (${report.assetDetails.name})?\n\nThis will remove all checklist data, photo evidence, and signatures. This cannot be undone.`
-    );
-    if (confirmed) {
-      onDeleteReport(report.id);
-    }
+    setReportToDelete(report);
   };
 
   const filteredReports = reports.filter((r) => {
@@ -298,17 +295,16 @@ export const ReportsList: React.FC<ReportsListProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    {/* Admin Delete Action */}
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleDelete(e, report)}
-                        className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
-                        title="ADMIN: Delete Report"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                    {/* Delete Action Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteClick(e, report)}
+                      className="flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 transition-colors shadow-2xs"
+                      title="Permanently delete this report"
+                    >
+                      <Trash2 className="h-3 w-3 text-rose-600" />
+                      <span>Delete</span>
+                    </button>
 
                     <button
                       type="button"
@@ -316,10 +312,11 @@ export const ReportsList: React.FC<ReportsListProps> = ({
                         e.stopPropagation();
                         onEditReport(report);
                       }}
-                      className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                      className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                       title={isAdmin ? "ADMIN: Edit any report" : "Edit Report"}
                     >
-                      <Edit className="h-3.5 w-3.5" />
+                      <Edit className="h-3 w-3 text-slate-500" />
+                      <span>Edit</span>
                     </button>
 
                     <button
@@ -410,6 +407,17 @@ export const ReportsList: React.FC<ReportsListProps> = ({
           </div>
         </div>
       )}
+
+      {/* In-app Delete Confirmation Modal (no window.confirm block) */}
+      <DeleteConfirmationModal
+        report={reportToDelete}
+        isOpen={Boolean(reportToDelete)}
+        onClose={() => setReportToDelete(null)}
+        onConfirm={(id) => {
+          onDeleteReport(id);
+          setReportToDelete(null);
+        }}
+      />
     </div>
   );
 };

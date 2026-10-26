@@ -21,6 +21,7 @@ import { Report, WorkOrder, ReportType } from '../types';
 import { storageService } from '../services/storageService';
 import { REPORT_TEMPLATES } from '../data/reportTemplates';
 import { USERS } from '../data/initialData';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 interface ManagerDashboardProps {
   reports: Report[];
@@ -42,6 +43,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'critical'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
 
   // New Work Order Form State
   const [woTitle, setWoTitle] = useState('');
@@ -380,18 +382,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                           {currentUser.role === 'admin' && (
                             <button
                               type="button"
-                              onClick={() => {
-                                const confirmed = window.confirm(
-                                  `ADMIN ACTION: Permanently delete report "${report.reportNumber}" (${report.assetDetails.name})?\n\nThis cannot be undone.`
-                                );
-                                if (confirmed) {
-                                  if (onDeleteReport) {
-                                    onDeleteReport(report.id);
-                                  } else {
-                                    storageService.deleteReport(report.id);
-                                  }
-                                }
-                              }}
+                              onClick={() => setReportToDelete(report)}
                               className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
                               title="ADMIN: Delete Report"
                             >
@@ -691,6 +682,21 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </form>
         </div>
       )}
+
+      {/* In-app Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        report={reportToDelete}
+        isOpen={Boolean(reportToDelete)}
+        onClose={() => setReportToDelete(null)}
+        onConfirm={(id) => {
+          if (onDeleteReport) {
+            onDeleteReport(id);
+          } else {
+            storageService.deleteReport(id);
+          }
+          setReportToDelete(null);
+        }}
+      />
     </div>
   );
 };

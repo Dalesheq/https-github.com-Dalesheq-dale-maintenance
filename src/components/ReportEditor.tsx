@@ -25,6 +25,7 @@ import { PhotoUploadModal } from './PhotoUploadModal';
 import { GPSLocationPicker } from './GPSLocationPicker';
 import { generateDaleAutomationPDF } from '../utils/pdfGenerator';
 import { storageService } from '../services/storageService';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 interface ReportEditorProps {
   initialReport: Report;
@@ -41,19 +42,16 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [saveToast, setSaveToast] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const currentUser = storageService.getCurrentUser();
   const isAdmin = currentUser.role === 'admin';
 
-  const handleAdminDelete = () => {
-    const confirmed = window.confirm(
-      `ADMIN ACTION: Permanently delete report "${report.reportNumber}" (${report.assetDetails.name})?\n\nThis will remove all checklist entries and photos. This cannot be undone.`
-    );
-    if (confirmed) {
-      storageService.deleteReport(report.id);
-      if (onDelete) onDelete(report.id);
-      onBack();
-    }
+  const handleConfirmDelete = (id: string) => {
+    storageService.deleteReport(id);
+    if (onDelete) onDelete(id);
+    setShowDeleteModal(false);
+    onBack();
   };
 
   const toggleSectionCollapse = (secId: string) => {
@@ -297,17 +295,15 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={handleAdminDelete}
-              className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
-              title="ADMIN: Delete Report"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Delete Report
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors shadow-2xs"
+            title="Permanently delete this report"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-rose-600" />
+            <span>Delete Report</span>
+          </button>
 
           <button
             type="button"
@@ -1104,6 +1100,14 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
         initialSnItem={activePhotoSn}
         onAddPhoto={handleAddPhoto}
         currentGps={{ latitude: report.gps.latitude, longitude: report.gps.longitude }}
+      />
+
+      {/* In-app Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        report={report}
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

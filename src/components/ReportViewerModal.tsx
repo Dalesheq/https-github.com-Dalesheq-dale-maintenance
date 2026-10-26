@@ -3,6 +3,7 @@ import { X, Download, Printer, Edit, ShieldCheck, CheckCircle2, AlertTriangle, X
 import { Report } from '../types';
 import { generateDaleAutomationPDF } from '../utils/pdfGenerator';
 import { storageService } from '../services/storageService';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 interface ReportViewerModalProps {
   report: Report | null;
@@ -20,23 +21,20 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
   onDelete,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   if (!isOpen || !report) return null;
 
   const isAdmin = storageService.isAdmin();
 
-  const handleDelete = () => {
-    const confirmed = window.confirm(
-      `ADMIN ACTION: Permanently delete report "${report.reportNumber}" (${report.assetDetails.name})?\n\nThis cannot be undone.`
-    );
-    if (confirmed) {
-      if (onDelete) {
-        onDelete(report.id);
-      } else {
-        storageService.deleteReport(report.id);
-      }
-      onClose();
+  const handleConfirmDelete = (id: string) => {
+    if (onDelete) {
+      onDelete(id);
+    } else {
+      storageService.deleteReport(id);
     }
+    setShowDeleteModal(false);
+    onClose();
   };
 
   const handleDownloadPdf = async () => {
@@ -72,17 +70,15 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
-                title="Admin Delete Report"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete (Admin)
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors shadow-2xs"
+              title="Permanently delete this report"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete Report
+            </button>
 
             <button
               onClick={() => {
@@ -394,6 +390,14 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* In-app Delete Confirmation Modal (no window.confirm block) */}
+      <DeleteConfirmationModal
+        report={report}
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 };

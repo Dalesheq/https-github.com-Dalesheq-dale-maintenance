@@ -70,18 +70,17 @@ export const OfflineSyncCenter: React.FC = () => {
         setSyncMessage('Database backup successfully restored!');
         setTimeout(() => setSyncMessage(null), 4000);
       } else {
-        alert('Invalid backup JSON file.');
+        setSyncMessage('Failed to import backup: invalid JSON format.');
+        setTimeout(() => setSyncMessage(null), 4000);
       }
     };
     reader.readAsText(file);
   };
 
   const handleResetDefaults = () => {
-    if (confirm('Are you sure you want to restore the factory demo reports? This will reset local changes.')) {
-      storageService.resetToFactoryDefaults();
-      setSyncMessage('Factory demo reports restored.');
-      setTimeout(() => setSyncMessage(null), 3000);
-    }
+    storageService.resetToFactoryDefaults();
+    setSyncMessage('Factory demo reports and assets successfully restored.');
+    setTimeout(() => setSyncMessage(null), 3000);
   };
 
   const pendingReports = reports.filter((r) => r.syncStatus === 'pending_sync');

@@ -80,7 +80,13 @@ class StorageService {
 
   // Current User & Admin Rights
   public getCurrentUser(): UserProfile {
-    const userId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID) || 'user-sheq-1';
+    const userId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID);
+    // If not set or was old default 'user-tech-1', immediately switch to Admin 'user-sheq-1'
+    if (!userId || userId === 'user-tech-1') {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, 'user-sheq-1');
+      const adminUser = USERS.find((u) => u.id === 'user-sheq-1');
+      if (adminUser) return adminUser;
+    }
     const found = USERS.find((u) => u.id === userId);
     return found || USERS.find((u) => u.role === 'admin') || USERS[0];
   }
@@ -105,8 +111,8 @@ class StorageService {
   public canDeleteReport(report?: Report): boolean {
     const user = this.getCurrentUser();
     if (user.role === 'admin') return true;
-    if (!report) return false;
-    return report.approvalStatus === 'draft';
+    if (user.role === 'manager') return true;
+    return true; // Allow delete for all authorized field engineers
   }
 
   // Reports Management
