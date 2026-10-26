@@ -1,0 +1,6 @@
+{
+  "name": "Dale Automation - Commissioning & Service Ops",
+  "description": "Offline-first heavy industrial machinery commissioning, inspection and service reporting system with automated PDF generation, digital signatures, GPS site verification, cloud sync, manager approval dashboard, and real-time urgent work order push notifications.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

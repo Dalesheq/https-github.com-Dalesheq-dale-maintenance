@@ -1,0 +1,696 @@
+import React, { useState } from 'react';
+import {
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Clock,
+  Send,
+  Plus,
+  Eye,
+  FileText,
+  UserCheck,
+  Filter,
+  Search,
+  ArrowRight,
+  MapPin,
+  Calendar,
+  Trash2,
+} from 'lucide-react';
+import { Report, WorkOrder, ReportType } from '../types';
+import { storageService } from '../services/storageService';
+import { REPORT_TEMPLATES } from '../data/reportTemplates';
+import { USERS } from '../data/initialData';
+
+interface ManagerDashboardProps {
+  reports: Report[];
+  workOrders: WorkOrder[];
+  onViewReport: (report: Report) => void;
+  onEditReport: (report: Report) => void;
+  onDeleteReport?: (reportId: string) => void;
+}
+
+export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
+  reports,
+  workOrders,
+  onViewReport,
+  onEditReport,
+  onDeleteReport,
+}) => {
+  const [selectedReportForReview, setSelectedReportForReview] = useState<Report | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'critical'>('pending');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+
+  // New Work Order Form State
+  const [woTitle, setWoTitle] = useState('');
+  const [woPriority, setWoPriority] = useState<'Urgent' | 'High' | 'Medium' | 'Routine'>('Urgent');
+  const [woClient, setWoClient] = useState('Sunbake Benoni');
+  const [woFacility, setWoFacility] = useState('Sunbake Benoni Plant');
+  const [woAssetName, setWoAssetName] = useState('8000 Baking Oven');
+  const [woAssetNumber, setWoAssetNumber] = useState('DSS 269-2');
+  const [woAssignedTo, setWoAssignedTo] = useState('Raynard Kruger');
+  const [woTemplate, setWoTemplate] = useState<ReportType>('oven_inspection');
+  const [woDescription, setWoDescription] = useState('');
+
+  const currentUser = storageService.getCurrentUser();
+
+  // Metrics
+  const pendingReports = reports.filter((r) => r.approvalStatus === 'submitted' || r.approvalStatus === 'under_review');
+  const approvedReports = reports.filter((r) => r.approvalStatus === 'approved');
+  const criticalSafetyAlerts = reports.filter(
+    (r) => !r.summary.assetSafeToUse || r.summary.overallCondition.includes('Major') || r.summary.maintenancePriority === 'Urgent'
+  );
+  const urgentOrders = workOrders.filter((w) => w.priority === 'Urgent' && w.status !== 'completed');
+
+  // Filtered reports for list
+  const filteredReports = reports.filter((r) => {
+    const matchesSearch =
+      r.reportNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.assetDetails.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.assetDetails.assetNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.inspectorName.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (statusFilter === 'pending') {
+      return r.approvalStatus === 'submitted' || r.approvalStatus === 'under_review';
+    }
+    if (statusFilter === 'approved') {
+      return r.approvalStatus === 'approved';
+    }
+    if (statusFilter === 'critical') {
+      return !r.summary.assetSafeToUse || r.summary.maintenancePriority === 'Urgent';
+    }
+    return true;
+  });
+
+  const handleApprove = (report: Report) => {
+    storageService.approveReport(report.id, currentUser.name, reviewNotes.trim() || 'Reviewed and approved for plant operation.');
+    setSelectedReportForReview(null);
+    setReviewNotes('');
+  };
+
+  const handleRequestRevision = (report: Report) => {
+    if (!reviewNotes.trim()) {
+      alert('Please specify the required adjustments or observations in the notes field.');
+      return;
+    }
+    storageService.requestRevision(report.id, currentUser.name, reviewNotes.trim());
+    setSelectedReportForReview(null);
+    setReviewNotes('');
+  };
+
+  const handleDispatchWorkOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!woTitle.trim()) return;
+
+    const nextWoNumber = `WO-2026-${String(workOrders.length + 95).padStart(3, '0')}`;
+
+    storageService.dispatchUrgentWorkOrder({
+      workOrderNumber: nextWoNumber,
+      title: woTitle.trim(),
+      priority: woPriority,
+      clientName: woClient,
+      facility: woFacility,
+      assetName: woAssetName,
+      assetNumber: woAssetNumber,
+      location: woFacility,
+      assignedTo: woAssignedTo,
+      assignedBy: currentUser.name,
+      dueDate: new Date(Date.now() + 86400000 * 2).toISOString(),
+      status: 'assigned',
+      description: woDescription.trim(),
+      templateType: woTemplate,
+    });
+
+    setIsDispatchModalOpen(false);
+    setWoTitle('');
+    setWoDescription('');
+  };
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
+      {/* Role Header Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Management &amp; SHEQ Console
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="text-xs font-semibold text-slate-700">{currentUser.name} ({currentUser.title})</span>
+          </div>
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            Industrial Equipment Review &amp; Dispatch Dashboard
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Review field inspection reports, authorize machinery safety sign-offs, and dispatch real-time urgent work orders.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsDispatchModalOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-rose-700 transition-colors"
+        >
+          <Send className="h-4 w-4" />
+          Dispatch Urgent Work Order
+        </button>
+      </div>
+
+      {/* KPI Stat Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Pending Review */}
+        <div
+          onClick={() => setStatusFilter('pending')}
+          className={`cursor-pointer rounded-xl border p-4 bg-white transition-all shadow-xs ${
+            statusFilter === 'pending' ? 'border-amber-400 ring-2 ring-amber-300' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Pending Review</span>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </div>
+          <div className="mt-2 text-2xl font-black text-slate-900 font-mono-numbers">
+            {pendingReports.length}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">Awaiting manager sign-off</div>
+        </div>
+
+        {/* Critical Alerts */}
+        <div
+          onClick={() => setStatusFilter('critical')}
+          className={`cursor-pointer rounded-xl border p-4 bg-white transition-all shadow-xs ${
+            statusFilter === 'critical' ? 'border-rose-400 ring-2 ring-rose-300' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-700">Critical / Unsafe</span>
+            <AlertTriangle className="h-4 w-4 text-rose-600" />
+          </div>
+          <div className="mt-2 text-2xl font-black text-rose-600 font-mono-numbers">
+            {criticalSafetyAlerts.length}
+          </div>
+          <div className="mt-1 text-[11px] text-rose-700 font-medium">Immediate maintenance required</div>
+        </div>
+
+        {/* Urgent Work Orders */}
+        <div className="rounded-xl border border-slate-200 p-4 bg-white shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Active Work Orders</span>
+            <Send className="h-4 w-4 text-blue-600" />
+          </div>
+          <div className="mt-2 text-2xl font-black text-slate-900 font-mono-numbers">
+            {urgentOrders.length}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">{urgentOrders.length} urgent field dispatches</div>
+        </div>
+
+        {/* Approved Reports */}
+        <div
+          onClick={() => setStatusFilter('approved')}
+          className={`cursor-pointer rounded-xl border p-4 bg-white transition-all shadow-xs ${
+            statusFilter === 'approved' ? 'border-emerald-400 ring-2 ring-emerald-300' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Approved Reports</span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div className="mt-2 text-2xl font-black text-slate-900 font-mono-numbers">
+            {approvedReports.length}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">Certified for production</div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+              statusFilter === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            All Reports ({reports.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('pending')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+              statusFilter === 'pending' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            Pending Approval ({pendingReports.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('critical')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+              statusFilter === 'critical' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            Critical / Unsafe ({criticalSafetyAlerts.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('approved')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+              statusFilter === 'approved' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            Approved ({approvedReports.length})
+          </button>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative min-w-[240px]">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search report, asset, or inspector..."
+            className="w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+          />
+        </div>
+      </div>
+
+      {/* Reports Table */}
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-700">
+                <th className="py-3 px-4">Report &amp; Machinery Asset</th>
+                <th className="py-3 px-4">Inspector &amp; Location</th>
+                <th className="py-3 px-4">Condition &amp; Safety</th>
+                <th className="py-3 px-4">Priority</th>
+                <th className="py-3 px-4 text-center">Approval Status</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredReports.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                    No reports matching filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredReports.map((report) => {
+                  const isCritical =
+                    !report.summary.assetSafeToUse ||
+                    report.summary.overallCondition.includes('Major') ||
+                    report.summary.maintenancePriority === 'Urgent';
+
+                  return (
+                    <tr key={report.id} className="hover:bg-slate-50/60 transition-colors">
+                      {/* Report & Asset */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900 font-mono-numbers">{report.reportNumber}</div>
+                        <div className="text-xs text-slate-700 font-medium">{report.assetDetails.name}</div>
+                        <div className="text-[11px] text-slate-400">
+                          {report.assetDetails.assetNumber} · {report.assetDetails.category}
+                        </div>
+                      </td>
+
+                      {/* Inspector & Location */}
+                      <td className="py-3 px-4">
+                        <div className="font-semibold text-slate-900">{report.inspectorName}</div>
+                        <div className="text-[11px] text-slate-500">{report.location}</div>
+                        <div className="text-[10px] text-slate-400 font-mono-numbers">
+                          {report.inspectionDate}
+                        </div>
+                      </td>
+
+                      {/* Condition & Safety */}
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-slate-800">{report.summary.overallCondition}</div>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          {report.summary.assetSafeToUse ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                              <CheckCircle2 className="h-3 w-3" /> Safe to Use
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">
+                              <AlertTriangle className="h-3 w-3" /> UNSAFE - SHUT DOWN
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Priority */}
+                      <td className="py-3 px-4">
+                        <span
+                          className={`font-bold text-[11px] ${
+                            report.summary.maintenancePriority === 'Urgent'
+                              ? 'text-rose-600'
+                              : report.summary.maintenancePriority === 'High'
+                              ? 'text-amber-600'
+                              : 'text-slate-600'
+                          }`}
+                        >
+                          {report.summary.maintenancePriority}
+                        </span>
+                      </td>
+
+                      {/* Approval Status */}
+                      <td className="py-3 px-4 text-center">
+                        <span
+                          className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
+                            report.approvalStatus === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : report.approvalStatus === 'submitted'
+                              ? 'bg-blue-100 text-blue-800'
+                              : report.approvalStatus === 'revision_requested'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {report.approvalStatus.replace('_', ' ')}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Admin Delete Action */}
+                          {currentUser.role === 'admin' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const confirmed = window.confirm(
+                                  `ADMIN ACTION: Permanently delete report "${report.reportNumber}" (${report.assetDetails.name})?\n\nThis cannot be undone.`
+                                );
+                                if (confirmed) {
+                                  if (onDeleteReport) {
+                                    onDeleteReport(report.id);
+                                  } else {
+                                    storageService.deleteReport(report.id);
+                                  }
+                                }
+                              }}
+                              className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                              title="ADMIN: Delete Report"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => onViewReport(report)}
+                            className="rounded-lg border border-slate-300 bg-white p-1.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                            title="Preview official PDF report"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+
+                          {(report.approvalStatus === 'submitted' || report.approvalStatus === 'under_review') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedReportForReview(report);
+                                setReviewNotes('');
+                              }}
+                              className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-800"
+                            >
+                              Review &amp; Sign
+                            </button>
+                          )}
+
+                          {(report.approvalStatus === 'approved' || currentUser.role === 'admin') && (
+                            <button
+                              type="button"
+                              onClick={() => onEditReport(report)}
+                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                              title={currentUser.role === 'admin' ? 'ADMIN: Edit any report' : 'View / Edit'}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Review & Approve Modal */}
+      {selectedReportForReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between border-b border-slate-200 pb-3">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Manager Sign-off</span>
+                <h3 className="text-base font-bold text-slate-900">{selectedReportForReview.reportNumber}</h3>
+                <p className="text-xs text-slate-600 font-medium">
+                  {selectedReportForReview.assetDetails.name} ({selectedReportForReview.assetDetails.assetNumber})
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedReportForReview(null)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Inspector:</span>
+                <span className="font-semibold">{selectedReportForReview.inspectorName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Condition:</span>
+                <span className="font-bold">{selectedReportForReview.summary.overallCondition}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Safe to Operate:</span>
+                <span className={selectedReportForReview.summary.assetSafeToUse ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
+                  {selectedReportForReview.summary.assetSafeToUse ? 'YES' : 'NO (RISK)'}
+                </span>
+              </div>
+              {selectedReportForReview.summary.additionalNotes && (
+                <div className="pt-1.5 border-t border-slate-200">
+                  <span className="text-slate-500 block">Tech Observations:</span>
+                  <p className="text-slate-800 italic mt-0.5">{selectedReportForReview.summary.additionalNotes}</p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700">
+                Operations Manager Review Notes &amp; Signoff Instructions
+              </label>
+              <textarea
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                placeholder="e.g. Approved. Spare parts order #9822 placed for Saturday maintenance window."
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+              <button
+                type="button"
+                onClick={() => handleRequestRevision(selectedReportForReview)}
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+              >
+                Request Revisions
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedReportForReview(null)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApprove(selectedReportForReview)}
+                  className="flex items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-1.5 text-xs font-bold text-white hover:bg-emerald-800"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Authorize &amp; Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dispatch Urgent Work Order Modal */}
+      {isDispatchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+          <form
+            onSubmit={handleDispatchWorkOrder}
+            className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4"
+          >
+            <div className="flex items-start justify-between border-b border-slate-200 pb-3">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-rose-600">Real-Time Dispatch</span>
+                <h3 className="text-base font-bold text-slate-900">Issue Urgent Work Order Assignment</h3>
+                <p className="text-xs text-slate-500">
+                  Instantly sends a high-priority push notification and assignment to the field technician.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDispatchModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700">
+                Work Order Title <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={woTitle}
+                onChange={(e) => setWoTitle(e.target.value)}
+                placeholder="e.g. URGENT: Replace fractured flame tubes before evening bake cycle"
+                className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">Urgency Priority</label>
+                <select
+                  value={woPriority}
+                  onChange={(e) => setWoPriority(e.target.value as any)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-slate-900 focus:border-slate-900 focus:outline-hidden"
+                >
+                  <option value="Urgent">🚨 Urgent (Immediate Push Alert)</option>
+                  <option value="High">⚠️ High Priority</option>
+                  <option value="Medium">Medium Priority</option>
+                  <option value="Routine">Routine Service</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">Assign Technician</label>
+                <select
+                  value={woAssignedTo}
+                  onChange={(e) => setWoAssignedTo(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 font-semibold focus:border-slate-900 focus:outline-hidden"
+                >
+                  {USERS.filter((u) => u.role === 'technician').map((tech) => (
+                    <option key={tech.id} value={tech.name}>
+                      {tech.name} ({tech.title})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">Client / Plant Name</label>
+                <input
+                  type="text"
+                  value={woClient}
+                  onChange={(e) => setWoClient(e.target.value)}
+                  placeholder="e.g. Sunbake Benoni"
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">Facility Location</label>
+                <input
+                  type="text"
+                  value={woFacility}
+                  onChange={(e) => setWoFacility(e.target.value)}
+                  placeholder="e.g. Van Dyk Rd, Benoni"
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">Machinery Asset Name</label>
+                <input
+                  type="text"
+                  value={woAssetName}
+                  onChange={(e) => setWoAssetName(e.target.value)}
+                  placeholder="e.g. 8000 Baking Oven"
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700">Asset Serial #</label>
+                <input
+                  type="text"
+                  value={woAssetNumber}
+                  onChange={(e) => setWoAssetNumber(e.target.value)}
+                  placeholder="e.g. DSS 269-2"
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-900 font-mono-numbers focus:border-slate-900 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700">Report Template to Use</label>
+              <select
+                value={woTemplate}
+                onChange={(e) => setWoTemplate(e.target.value as ReportType)}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+              >
+                {Object.values(REPORT_TEMPLATES).map((tmpl) => (
+                  <option key={tmpl.type} value={tmpl.type}>
+                    {tmpl.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700">Detailed Scope of Work &amp; Directives</label>
+              <textarea
+                value={woDescription}
+                onChange={(e) => setWoDescription(e.target.value)}
+                placeholder="Specify parts brought, safety lockouts needed, and acceptance criteria..."
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsDispatchModalOpen(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700"
+              >
+                <Send className="h-4 w-4" />
+                Dispatch &amp; Send Push Notification
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
