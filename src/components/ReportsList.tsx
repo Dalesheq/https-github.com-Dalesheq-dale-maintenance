@@ -30,6 +30,7 @@ interface ReportsListProps {
   onCreateReportFromTemplate: (template: ReportTemplate) => void;
   isTemplateModalOpen: boolean;
   setIsTemplateModalOpen: (open: boolean) => void;
+  onOpenCustomBuilder?: () => void;
 }
 
 export const ReportsList: React.FC<ReportsListProps> = ({
@@ -40,6 +41,7 @@ export const ReportsList: React.FC<ReportsListProps> = ({
   onCreateReportFromTemplate,
   isTemplateModalOpen,
   setIsTemplateModalOpen,
+  onOpenCustomBuilder,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'submitted' | 'draft' | 'urgent'>('all');
@@ -372,8 +374,27 @@ export const ReportsList: React.FC<ReportsListProps> = ({
               </button>
             </div>
 
+            <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg p-3">
+              <div className="text-xs text-slate-700">
+                <span className="font-bold text-slate-900 block">Need a site-specific inspection sheet?</span>
+                Assemble custom machine checklists with pre-populated Dale Automation components.
+              </div>
+              {onOpenCustomBuilder && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTemplateModalOpen(false);
+                    onOpenCustomBuilder();
+                  }}
+                  className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors shadow-xs"
+                >
+                  Open Custom Builder
+                </button>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              {Object.values(REPORT_TEMPLATES).map((tmpl) => (
+              {storageService.getAllTemplates().map((tmpl) => (
                 <div
                   key={tmpl.type}
                   onClick={() => {
@@ -383,7 +404,14 @@ export const ReportsList: React.FC<ReportsListProps> = ({
                   className="cursor-pointer rounded-xl border border-slate-200 p-4 hover:border-slate-400 hover:shadow-xs transition-all bg-slate-50/50 hover:bg-white flex flex-col justify-between"
                 >
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">{tmpl.title}</h4>
+                    <div className="flex items-center justify-between gap-1">
+                      <h4 className="text-xs font-bold text-slate-900">{tmpl.title}</h4>
+                      {tmpl.type.startsWith('custom_') && (
+                        <span className="text-[9px] font-extrabold uppercase bg-red-100 text-red-700 px-1.5 py-0.2 rounded">
+                          Custom
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-blue-600 font-semibold">{tmpl.defaultCategory}</span>
                     <p className="mt-1 text-[11px] text-slate-600 line-clamp-2">{tmpl.description}</p>
                   </div>

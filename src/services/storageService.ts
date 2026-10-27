@@ -1,6 +1,7 @@
 import { Report, WorkOrder, PushNotification, UserProfile } from '../types';
 import { INITIAL_REPORTS, INITIAL_WORK_ORDERS, INITIAL_NOTIFICATIONS, USERS } from '../data/initialData';
 import { playAlertChime } from './audioNotification';
+import { REPORT_TEMPLATES, ReportTemplate } from '../data/reportTemplates';
 
 const STORAGE_KEYS = {
   REPORTS: 'dale_reports_v1',
@@ -10,6 +11,7 @@ const STORAGE_KEYS = {
   SIMULATE_OFFLINE: 'dale_simulate_offline',
   LAST_SYNCED: 'dale_last_synced_timestamp',
   SYNC_QUEUE: 'dale_sync_queue_ids',
+  CUSTOM_TEMPLATES: 'dale_custom_templates_v1',
 };
 
 class StorageService {
@@ -491,11 +493,47 @@ class StorageService {
     }
   }
 
+  // Custom Templates Management
+  public getCustomTemplates(): ReportTemplate[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.CUSTOM_TEMPLATES);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public saveCustomTemplate(template: ReportTemplate): void {
+    const list = this.getCustomTemplates();
+    const existingIndex = list.findIndex((t) => t.type === template.type);
+    if (existingIndex >= 0) {
+      list[existingIndex] = template;
+    } else {
+      list.unshift(template);
+    }
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(list));
+    this.notifyListeners();
+  }
+
+  public deleteCustomTemplate(templateType: string): void {
+    const list = this.getCustomTemplates().filter((t) => t.type !== templateType);
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_TEMPLATES, JSON.stringify(list));
+    this.notifyListeners();
+  }
+
+  public getAllTemplates(): ReportTemplate[] {
+    const builtIn = Object.values(REPORT_TEMPLATES);
+    const custom = this.getCustomTemplates();
+    // Return custom first, then built-in
+    return [...custom, ...builtIn];
+  }
+
   public resetToFactoryDefaults() {
     localStorage.removeItem(STORAGE_KEYS.REPORTS);
     localStorage.removeItem(STORAGE_KEYS.WORK_ORDERS);
     localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
     localStorage.removeItem(STORAGE_KEYS.SYNC_QUEUE);
+    localStorage.removeItem(STORAGE_KEYS.CUSTOM_TEMPLATES);
     this.saveReports(INITIAL_REPORTS);
     this.saveWorkOrders(INITIAL_WORK_ORDERS);
     this.saveNotifications(INITIAL_NOTIFICATIONS);

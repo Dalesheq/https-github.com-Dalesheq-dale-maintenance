@@ -12,14 +12,24 @@ import {
   ChevronDown,
   AlertTriangle,
   CheckCircle2,
+  TrendingUp,
+  Sliders,
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { PushNotification, UserProfile } from '../types';
 import { USERS } from '../data/initialData';
 
+export type NavTab =
+  | 'reports'
+  | 'work-orders'
+  | 'template-builder'
+  | 'trends-dashboard'
+  | 'manager-dashboard'
+  | 'sync-center';
+
 interface HeaderProps {
-  currentTab: 'reports' | 'work-orders' | 'manager-dashboard' | 'sync-center';
-  onTabChange: (tab: 'reports' | 'work-orders' | 'manager-dashboard' | 'sync-center') => void;
+  currentTab: NavTab;
+  onTabChange: (tab: NavTab) => void;
   onNewReport: () => void;
   onSelectWorkOrder?: (woId: string) => void;
   onSelectReport?: (reportId: string) => void;
@@ -114,19 +124,43 @@ export const Header: React.FC<HeaderProps> = ({
           <nav className="hidden md:flex items-center gap-1">
             <button
               onClick={() => onTabChange('reports')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                 currentTab === 'reports'
                   ? 'bg-slate-100 text-slate-900'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <FileText className="h-4 w-4" />
-              Inspection Reports
+              Reports
+            </button>
+
+            <button
+              onClick={() => onTabChange('template-builder')}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                currentTab === 'template-builder'
+                  ? 'bg-slate-100 text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Sliders className="h-4 w-4 text-red-600" />
+              Custom Builder
+            </button>
+
+            <button
+              onClick={() => onTabChange('trends-dashboard')}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                currentTab === 'trends-dashboard'
+                  ? 'bg-slate-100 text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              Trends &amp; Stats
             </button>
 
             <button
               onClick={() => onTabChange('work-orders')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                 currentTab === 'work-orders'
                   ? 'bg-slate-100 text-slate-900'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -134,36 +168,35 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <ClipboardList className="h-4 w-4" />
               Work Orders
-              {/* Urgent badge if any uncompleted urgent work orders */}
-              <span className="ml-1 rounded-sm bg-rose-100 px-1.5 py-0.2 text-[10px] font-bold text-rose-700">
-                2 Urgent
+              <span className="ml-0.5 rounded-sm bg-rose-100 px-1 py-0.2 text-[10px] font-bold text-rose-700">
+                2
               </span>
             </button>
 
             <button
               onClick={() => onTabChange('manager-dashboard')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                 currentTab === 'manager-dashboard'
                   ? 'bg-slate-100 text-slate-900'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <ShieldCheck className="h-4 w-4" />
-              Manager Approvals
+              Approvals
             </button>
 
             <button
               onClick={() => onTabChange('sync-center')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                 currentTab === 'sync-center'
                   ? 'bg-slate-100 text-slate-900'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin text-blue-600' : ''}`} />
-              Offline &amp; Cloud Sync
+              Sync
               {pendingSyncCount > 0 && (
-                <span className="ml-1 rounded-sm bg-amber-100 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
+                <span className="ml-0.5 rounded-sm bg-amber-100 px-1 py-0.2 text-[10px] font-bold text-amber-800">
                   {pendingSyncCount}
                 </span>
               )}
@@ -362,6 +395,22 @@ export const Header: React.FC<HeaderProps> = ({
             Reports
           </button>
           <button
+            onClick={() => onTabChange('template-builder')}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-md whitespace-nowrap ${
+              currentTab === 'template-builder' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-600'
+            }`}
+          >
+            Custom Builder
+          </button>
+          <button
+            onClick={() => onTabChange('trends-dashboard')}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-md whitespace-nowrap ${
+              currentTab === 'trends-dashboard' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-600'
+            }`}
+          >
+            Trends
+          </button>
+          <button
             onClick={() => onTabChange('work-orders')}
             className={`px-2.5 py-1 text-xs font-semibold rounded-md whitespace-nowrap ${
               currentTab === 'work-orders' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-600'
@@ -375,7 +424,7 @@ export const Header: React.FC<HeaderProps> = ({
               currentTab === 'manager-dashboard' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-600'
             }`}
           >
-            Manager Approvals
+            Approvals
           </button>
           <button
             onClick={() => onTabChange('sync-center')}

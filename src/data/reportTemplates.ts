@@ -558,6 +558,176 @@ export const REPORT_TEMPLATES: Record<ReportType, ReportTemplate> = {
     ],
   },
 
+  prover_steam_conditioning: {
+    type: 'prover_steam_conditioning',
+    title: 'Prover Steam Train, Conditioning Unit & Air Circulation',
+    defaultCategory: '8000 LPH Prover Air-Conditioning & Steam System',
+    description: 'Commissioning & preventative maintenance inspection for Dale Automation industrial provers, steam lances, DP27 PRV station, and air balance.',
+    defaultModelYear: 'Dale Bakermation',
+    sections: [
+      {
+        id: 'psc-steam',
+        title: '1. Steam Train & Pressure Regulation',
+        items: [
+          { id: 'psc-1', sn: 1, name: 'Spirax Sarco DP27 PRV Operation', notes: 'Verify design setpoints maintained during production (design: 2.2 Bar)', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-2', sn: 2, name: 'Main Line & Condensate Strainers', notes: 'Cleaning of strainers on main & condensate lines', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-3', sn: 3, name: 'Proportional Steam Modulating Valve', notes: 'Inspect 4-20mA actuator stroke and gland packing', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-4', sn: 4, name: 'Steam Injection Lance Nozzles', notes: 'Check steam orifices for mineral scale buildup', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-5', sn: 5, name: 'Condensate Thermodynamic Trap', notes: 'Verify trap cycling and zero steam blow-through', status: 'good', statusType: 'good_repair_replace' },
+        ],
+      },
+      {
+        id: 'psc-air',
+        title: '2. Air Circulation & Conditioning Fans',
+        items: [
+          { id: 'psc-6', sn: 6, name: 'Supply & Return Air Fans', notes: 'Greasing of circulation fan bearings (15000hrs/SRI-2)', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-7', sn: 7, name: 'Conditioning Ducting & Stainless Sheeting', notes: 'Inspect ducting for corrosion, leaks, or debris accumulation', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-8', sn: 8, name: 'Belimo Exhaust & Fresh Air Dampers', notes: 'Verify smooth travel 0-100% and limit switch feedback', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-9', sn: 9, name: 'Air Intake Filters & Mesh Screens', notes: 'Air intake filters clean and secure', status: 'good', statusType: 'good_repair_replace' },
+        ],
+      },
+      {
+        id: 'psc-humidity',
+        title: '3. Humidity & Temperature Sensors',
+        items: [
+          { id: 'psc-10', sn: 10, name: 'Wet & Dry Bulb RTD Probes', notes: 'Probes clean and calibrated against handheld reference', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-11', sn: 11, name: 'Wet Bulb Water Supply & Wick', notes: 'Clean demineralized water flow verified to wick', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'psc-12', sn: 12, name: 'Prover Sump Drainage & Heated Trap', notes: 'Floor drains open, water flows freely to plant trench', status: 'good', statusType: 'good_repair_replace' },
+        ],
+      },
+      {
+        id: 'psc-safety',
+        title: '4. Loader/Unloader Safeties & Fortress Lockouts',
+        items: [
+          { id: 'psc-13', sn: 13, name: 'Fortress Key Interlock System', notes: 'Run inhibit active when key is removed', status: 'pass', statusType: 'pass_fail' },
+          { id: 'psc-14', sn: 14, name: 'Swing Tilt Proxies & Finger Tilt Safeties', notes: 'Test jam condition recovery protocol', status: 'pass', statusType: 'pass_fail' },
+          { id: 'psc-15', sn: 15, name: 'Emergency Stop & Escape Door Switches', notes: 'All perimeter switches verified on HMI', status: 'pass', statusType: 'pass_fail' },
+        ],
+      },
+    ],
+  },
+
+  tunnel_oven_gas_train: {
+    type: 'tunnel_oven_gas_train',
+    title: 'Tunnel Oven Gas Train, Burners & Refractory Inspection',
+    defaultCategory: 'Commercial Tunnel Baking Oven',
+    description: 'Specialized check sheet for gas burner manifolds, flame tube refractory inspection, combustion blowers, and safety purge interlocks.',
+    defaultModelYear: 'Dale Bakermation',
+    sections: [
+      {
+        id: 'tog-burners',
+        title: '1. Burner Units & Ignition Train',
+        items: [
+          { id: 'tog-1', sn: 1, name: 'Burner 1 Combustion & Spark Ignition', notes: 'Clean electrode and verified flame rod ionization current', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-2', sn: 2, name: 'Burner 2 Combustion & Spark Ignition', notes: 'Clean electrode and verified flame rod ionization current', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-3', sn: 3, name: 'Burner 3 Combustion & Spark Ignition', notes: 'Clean electrode and verified flame rod ionization current', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-4', sn: 4, name: 'Burner 4 Combustion & Spark Ignition', notes: 'Clean electrode and verified flame rod ionization current', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-5', sn: 5, name: 'Gas Train Double Solenoid Shutoff Valves', notes: 'Bubble-leak tested; zero leakage past seats', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-6', sn: 6, name: 'Gas Pressure Regulators & Manifold Gauges', notes: 'Inlet pressure 250 mbar, manifold pressure 45 mbar', status: 'good', statusType: 'good_repair_replace' },
+        ],
+      },
+      {
+        id: 'tog-flametubes',
+        title: '2. Flame Tubes & Refractory Integrity',
+        items: [
+          { id: 'tog-7', sn: 7, name: 'Flame Tube 1 Refractory Lining', notes: 'Inspect 2.4m refractory tube for cracks and spalling', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-8', sn: 8, name: 'Flame Tube 2 Refractory Lining', notes: 'Inspect 2.4m refractory tube for cracks and spalling', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-9', sn: 9, name: 'Flame Tube 3 Refractory Lining', notes: 'Inspect 2.4m refractory tube for cracks and spalling', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-10', sn: 10, name: 'Flame Tube 4 Refractory Lining', notes: 'Inspect 2.4m refractory tube for cracks and spalling', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'tog-11', sn: 11, name: 'Combustion Chamber Expansion Joints', notes: 'Bellows expansion joint intact without exhaust leaks', status: 'good', statusType: 'good_repair_replace' },
+        ],
+      },
+      {
+        id: 'tog-safety',
+        title: '3. Safety Purge & LMV5 PLC Protection',
+        items: [
+          { id: 'tog-12', sn: 12, name: 'Pre-Purge Air Flow Switch & Countdown', notes: 'Purge timer tested (minimum 300s verified)', status: 'pass', statusType: 'pass_fail' },
+          { id: 'tog-13', sn: 13, name: 'High & Low Gas Pressure Trip Switches', notes: 'Trip setpoints confirmed with calibrator', status: 'pass', statusType: 'pass_fail' },
+          { id: 'tog-14', sn: 14, name: 'LMV5 Safety PLC Status & Alarm Reset', notes: 'No lockouts present; safety CPU state nominal', status: 'pass', statusType: 'pass_fail' },
+          { id: 'tog-15', sn: 15, name: 'High-Temperature Chamber Cutout Thermostat', notes: 'Safety cutout verified at 295°C', status: 'pass', statusType: 'pass_fail' },
+        ],
+      },
+    ],
+  },
+
+  depanner_slat_infeed: {
+    type: 'depanner_slat_infeed',
+    title: 'Bread Cooler De-Panner & Slat Infeed Transfer Table',
+    defaultCategory: 'De-Panner & Slat Infeed Conveyor',
+    description: 'Commissioning and maintenance sheet for bread de-panning suction heads, slat transfer chains, pan positioning proxies, and product feed.',
+    defaultModelYear: 'Dale Automation',
+    sections: [
+      {
+        id: 'dsi-depanner',
+        title: '1. De-Panner Vacuum Head & Suction',
+        items: [
+          { id: 'dsi-1', sn: 1, name: 'Silicone Suction Cups & Retention Rings', notes: 'Check all cups for tears, hardening, or missing retainers', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-2', sn: 2, name: 'Vacuum Manifold & Cyclone Filter Element', notes: 'Clean flour dust filter and verify seal', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-3', sn: 3, name: 'Pneumatic Release / Blow-Off Timing Solenoid', notes: 'Clean bread drop onto cooling belt verified', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-4', sn: 4, name: 'De-Panner Height Spindle & Calibrated Scale', notes: 'Spindle greased and turns freely', status: 'good', statusType: 'good_repair_replace' },
+        ],
+      },
+      {
+        id: 'dsi-slat',
+        title: '2. Slat Infeed Conveyor & Drive',
+        items: [
+          { id: 'dsi-5', sn: 5, name: 'Stainless Slat Interlocking Belt', notes: 'Check slats for bending, burrs, or broken hinge eyes', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-6', sn: 6, name: 'Under-Belt HDPE Wear Strips & Guides', notes: 'Check wear strips for deep grooves and loose rivets', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-7', sn: 7, name: 'SEW Drive Gearmotor & Roller Chain Coupling', notes: 'Check chain tension and torque arm rubber bush', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-8', sn: 8, name: 'Idle Shaft Tensioner & Pillow Block Bearings', notes: 'Grease bearings with XP FG2 food grade grease', status: 'good', statusType: 'good_repair_replace' },
+        ],
+      },
+      {
+        id: 'dsi-sensors',
+        title: '3. Pan Indexing, Photocells & Safeties',
+        items: [
+          { id: 'dsi-9', sn: 9, name: 'Infeed Pan Gate Pneumatic Cylinder & Proxies', notes: 'Check flow controls for smooth cushioned stop', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-10', sn: 10, name: 'Product Jam Optical Sensors & Reflectors', notes: 'Lenses wiped clean, sensitivity calibrated', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'dsi-11', sn: 11, name: 'Safety Enclosure Cage Interlocks & E-Stop', notes: 'Conveyor stops immediately when access gate is opened', status: 'pass', statusType: 'pass_fail' },
+        ],
+      },
+    ],
+  },
+
+  ammonia_refrigeration_station: {
+    type: 'ammonia_refrigeration_station',
+    title: 'Refrigeration Ammonia Valve Station & Chiller Coils',
+    defaultCategory: 'Industrial Refrigeration & Coil Subsystems',
+    description: 'Commissioning & service inspection for industrial ammonia/glycol valves, evaporator coils, defrost pans, and secondary loop chillers.',
+    defaultModelYear: 'Dale Automation Refrigeration',
+    sections: [
+      {
+        id: 'ars-coils',
+        title: '1. Evaporator Coils & Defrost Assembly',
+        items: [
+          { id: 'ars-1', sn: 1, name: 'Coil Aluminum Fins Spacing & Cleanliness', notes: 'Fins straight, zero frost bridging or ice damming', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'ars-2', sn: 2, name: 'Stainless Defrost Pan & Heated Drain Line', notes: 'Drain heaters energized and water drains freely', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'ars-3', sn: 3, name: 'Refrigerant Header Pipes & Vapor Barrier', notes: 'Armaflex insulation undamaged with unbroken vapor seal', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'ars-4', sn: 4, name: 'Coil Airflow Face Velocity', notes: 'Average face velocity across face: 2.3 m/s', status: 'good', statusType: 'readings_only', readings: '2.3 m/s' },
+        ],
+      },
+      {
+        id: 'ars-valves',
+        title: '2. Valve Station & Safety Relief',
+        items: [
+          { id: 'ars-5', sn: 5, name: 'Dual Safety Relief Valves (In-Date)', notes: 'Verify 5-year re-certification brass tag', status: 'pass', statusType: 'pass_fail' },
+          { id: 'ars-6', sn: 6, name: 'Danfoss Solenoid & Regulating Valves', notes: 'Check valve action during auto-defrost sequence', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'ars-7', sn: 7, name: 'Pipeline Strainers & Isolation Valves', notes: 'Clean strainers and check handwheel packing', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'ars-8', sn: 8, name: 'Ammonia Gas Detection Sniffers', notes: 'Area sensors calibrated; test alarm strobes', status: 'pass', statusType: 'pass_fail' },
+        ],
+      },
+      {
+        id: 'ars-pumps',
+        title: '3. Circulation Pumps & Secondary Loop',
+        items: [
+          { id: 'ars-9', sn: 9, name: 'Lowara Chilled Coolant Circulation Pumps', notes: 'Pump 1 & 2 mechanical seals dry and vibration nominal', status: 'good', statusType: 'good_repair_replace' },
+          { id: 'ars-10', sn: 10, name: 'Differential Pressure Switch Trip Verification', notes: 'No-flow pump trip sequence tested and logged', status: 'pass', statusType: 'pass_fail' },
+          { id: 'ars-11', sn: 11, name: 'Electromagnetic Flowmeter (l/s)', notes: 'Flowrate reading steady under full chiller load', status: 'good', statusType: 'readings_only', readings: '26.4 l/s' },
+        ],
+      },
+    ],
+  },
+
   custom: {
     type: 'custom',
     title: 'Custom Industrial Machinery Inspection',

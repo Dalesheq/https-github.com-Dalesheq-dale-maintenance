@@ -4,20 +4,22 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
+import { Header, NavTab } from './components/Header';
 import { ReportsList } from './components/ReportsList';
 import { ReportEditor } from './components/ReportEditor';
 import { ReportViewerModal } from './components/ReportViewerModal';
 import { ManagerDashboard } from './components/ManagerDashboard';
 import { WorkOrdersList } from './components/WorkOrdersList';
 import { OfflineSyncCenter } from './components/OfflineSyncCenter';
+import { CustomTemplateBuilder } from './components/CustomTemplateBuilder';
+import { AnalyticsTrendsDashboard } from './components/AnalyticsTrendsDashboard';
 import { storageService } from './services/storageService';
 import { Report, WorkOrder, PushNotification } from './types';
 import { ReportTemplate, REPORT_TEMPLATES } from './data/reportTemplates';
 import { Bell, AlertTriangle, ArrowRight, X } from 'lucide-react';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<'reports' | 'work-orders' | 'manager-dashboard' | 'sync-center'>('reports');
+  const [currentTab, setCurrentTab] = useState<NavTab>('reports');
   const [reports, setReports] = useState<Report[]>(storageService.getReports());
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(storageService.getWorkOrders());
   const [selectedReportForView, setSelectedReportForView] = useState<Report | null>(null);
@@ -303,7 +305,25 @@ export default function App() {
             onCreateReportFromTemplate={handleCreateReportFromTemplate}
             isTemplateModalOpen={isTemplateModalOpen}
             setIsTemplateModalOpen={setIsTemplateModalOpen}
+            onOpenCustomBuilder={() => setCurrentTab('template-builder')}
           />
+        ) : currentTab === 'template-builder' ? (
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+            <CustomTemplateBuilder
+              onStartReportWithTemplate={(tpl) => {
+                handleCreateReportFromTemplate(tpl);
+              }}
+              onNavigateToReports={() => setCurrentTab('reports')}
+            />
+          </div>
+        ) : currentTab === 'trends-dashboard' ? (
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+            <AnalyticsTrendsDashboard
+              reports={reports}
+              workOrders={workOrders}
+              onCreateWorkOrder={() => setCurrentTab('manager-dashboard')}
+            />
+          </div>
         ) : currentTab === 'work-orders' ? (
           <WorkOrdersList
             workOrders={workOrders}

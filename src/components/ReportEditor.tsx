@@ -609,112 +609,98 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
                               )}
                             </td>
 
-                            {/* Status Radios */}
-                            <td className="py-2.5 px-2.5 text-center">
+                            {/* Status Evaluation with Dropdown Menu & Quick Action */}
+                            <td className="py-2.5 px-2.5 text-center min-w-[190px]">
                               {item.statusType === 'readings_only' ? (
-                                <span className="text-[11px] font-semibold text-slate-500">Readings Only</span>
+                                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+                                  Readings Only
+                                </span>
                               ) : item.statusType === 'pass_fail' ? (
-                                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'pass')}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'pass' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
+                                  <select
+                                    aria-label={`Status for ${item.name}`}
+                                    value={item.status}
+                                    onChange={(e) =>
+                                      handleUpdateItemStatus(section.id, item.id, e.target.value as ItemStatus)
+                                    }
+                                    className={`w-full sm:w-auto text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors cursor-pointer shadow-xs focus:outline-hidden ${
+                                      item.status === 'pass'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                        : item.status === 'fail'
+                                        ? 'border-rose-500 bg-rose-50 text-rose-800'
+                                        : 'border-slate-300 bg-slate-50 text-slate-700'
                                     }`}
                                   >
-                                    Pass
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'fail')}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'fail' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                                    }`}
-                                  >
-                                    Fail
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'na')}
-                                    className={`px-2 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'na' ? 'bg-slate-400 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                                    }`}
-                                  >
-                                    NA
-                                  </button>
+                                    <option value="pass">✓ Pass</option>
+                                    <option value="fail">✗ Fail</option>
+                                    <option value="na">− NA</option>
+                                  </select>
                                 </div>
                               ) : item.statusType === 'yes_no' ? (
-                                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'yes')}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'yes' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
+                                  <select
+                                    aria-label={`Status for ${item.name}`}
+                                    value={item.status}
+                                    onChange={(e) =>
+                                      handleUpdateItemStatus(section.id, item.id, e.target.value as ItemStatus)
+                                    }
+                                    className={`w-full sm:w-auto text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors cursor-pointer shadow-xs focus:outline-hidden ${
+                                      item.status === 'yes'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                        : item.status === 'no'
+                                        ? 'border-rose-500 bg-rose-50 text-rose-800'
+                                        : 'border-slate-300 bg-slate-50 text-slate-700'
                                     }`}
                                   >
-                                    Yes
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'no')}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'no' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                                    <option value="yes">✓ Yes</option>
+                                    <option value="no">✗ No</option>
+                                    <option value="na">− NA</option>
+                                  </select>
+                                </div>
+                              ) : item.statusType === 'ok_faulty' ? (
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
+                                  <select
+                                    aria-label={`Status for ${item.name}`}
+                                    value={item.status}
+                                    onChange={(e) =>
+                                      handleUpdateItemStatus(section.id, item.id, e.target.value as ItemStatus)
+                                    }
+                                    className={`w-full sm:w-auto text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors cursor-pointer shadow-xs focus:outline-hidden ${
+                                      item.status === 'ok'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                        : item.status === 'faulty'
+                                        ? 'border-rose-500 bg-rose-50 text-rose-800'
+                                        : 'border-slate-300 bg-slate-50 text-slate-700'
                                     }`}
                                   >
-                                    No
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'na')}
-                                    className={`px-2 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'na' ? 'bg-slate-400 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                                    }`}
-                                  >
-                                    NA
-                                  </button>
+                                    <option value="ok">✓ OK</option>
+                                    <option value="faulty">✗ Faulty</option>
+                                    <option value="na">− NA</option>
+                                  </select>
                                 </div>
                               ) : (
-                                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'good')}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'good' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-emerald-700'
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
+                                  <select
+                                    aria-label={`Status for ${item.name}`}
+                                    value={item.status}
+                                    onChange={(e) =>
+                                      handleUpdateItemStatus(section.id, item.id, e.target.value as ItemStatus)
+                                    }
+                                    className={`w-full sm:w-auto text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors cursor-pointer shadow-xs focus:outline-hidden ${
+                                      item.status === 'good'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                        : item.status === 'repair'
+                                        ? 'border-amber-500 bg-amber-50 text-amber-800'
+                                        : item.status === 'replace'
+                                        ? 'border-rose-500 bg-rose-50 text-rose-800'
+                                        : 'border-slate-300 bg-slate-50 text-slate-700'
                                     }`}
-                                    title="Good Condition"
                                   >
-                                    Good
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'repair')}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'repair' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-amber-700'
-                                    }`}
-                                    title="Repair Required"
-                                  >
-                                    Repair
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'replace')}
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'replace' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-rose-700'
-                                    }`}
-                                    title="Immediate Replacement Required"
-                                  >
-                                    Replace
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateItemStatus(section.id, item.id, 'na')}
-                                    className={`px-2 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                      item.status === 'na' ? 'bg-slate-400 text-white shadow-xs' : 'text-slate-400 hover:text-slate-700'
-                                    }`}
-                                    title="Not Applicable"
-                                  >
-                                    NA
-                                  </button>
+                                    <option value="good">✓ Good</option>
+                                    <option value="repair">⚠ Repair Required</option>
+                                    <option value="replace">✗ Replace Immediately</option>
+                                    <option value="na">− NA (Not Applicable)</option>
+                                  </select>
                                 </div>
                               )}
                             </td>

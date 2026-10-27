@@ -8,7 +8,12 @@ export type ReportType =
   | 'prover_inspection'
   | 'training_register'
   | 'service_van_tools'
-  | 'custom';
+  | 'prover_steam_conditioning'
+  | 'tunnel_oven_gas_train'
+  | 'depanner_slat_infeed'
+  | 'ammonia_refrigeration_station'
+  | 'custom'
+  | string;
 
 export type ItemStatus =
   | 'good'
