@@ -16,12 +16,16 @@ import {
   MapPin,
   Calendar,
   Trash2,
+  Edit3,
+  Wrench,
 } from 'lucide-react';
 import { Report, WorkOrder, ReportType } from '../types';
 import { storageService } from '../services/storageService';
 import { REPORT_TEMPLATES } from '../data/reportTemplates';
 import { USERS } from '../data/initialData';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { WorkOrderEditModal } from './WorkOrderEditModal';
+import { WorkOrderDeleteModal } from './WorkOrderDeleteModal';
 
 interface ManagerDashboardProps {
   reports: Report[];
@@ -40,10 +44,13 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 }) => {
   const [selectedReportForReview, setSelectedReportForReview] = useState<Report | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'critical'>('pending');
+  const [reviewError, setReviewError] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'critical' | 'work_orders'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
+  const [editingWO, setEditingWO] = useState<WorkOrder | null>(null);
+  const [deletingWO, setDeletingWO] = useState<WorkOrder | null>(null);
 
   // New Work Order Form State
   const [woTitle, setWoTitle] = useState('');
@@ -57,6 +64,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [woDescription, setWoDescription] = useState('');
 
   const currentUser = storageService.getCurrentUser();
+  const isAdmin = storageService.isAdmin();
 
   // Metrics
   const pendingReports = reports.filter((r) => r.approvalStatus === 'submitted' || r.approvalStatus === 'under_review');
@@ -88,17 +96,30 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     return true;
   });
 
+  const filteredWorkOrders = workOrders.filter((wo) => {
+    const matchesSearch =
+      wo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      wo.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      wo.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      wo.assetNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      wo.workOrderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      wo.assignedTo.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
   const handleApprove = (report: Report) => {
     storageService.approveReport(report.id, currentUser.name, reviewNotes.trim() || 'Reviewed and approved for plant operation.');
     setSelectedReportForReview(null);
     setReviewNotes('');
+    setReviewError('');
   };
 
   const handleRequestRevision = (report: Report) => {
     if (!reviewNotes.trim()) {
-      alert('Please specify the required adjustments or observations in the notes field.');
+      setReviewError('Please specify the required adjustments or observations in the notes field.');
       return;
     }
+    setReviewError('');
     storageService.requestRevision(report.id, currentUser.name, reviewNotes.trim());
     setSelectedReportForReview(null);
     setReviewNotes('');
@@ -199,15 +220,20 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </div>
 
         {/* Urgent Work Orders */}
-        <div className="rounded-xl border border-slate-200 p-4 bg-white shadow-xs">
+        <div
+          onClick={() => setStatusFilter('work_orders')}
+          className={`cursor-pointer rounded-xl border p-4 bg-white transition-all shadow-xs ${
+            statusFilter === 'work_orders' ? 'border-blue-500 ring-2 ring-blue-300' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Active Work Orders</span>
             <Send className="h-4 w-4 text-blue-600" />
           </div>
           <div className="mt-2 text-2xl font-black text-slate-900 font-mono-numbers">
-            {urgentOrders.length}
+            {workOrders.length}
           </div>
-          <div className="mt-1 text-[11px] text-slate-500">{urgentOrders.length} urgent field dispatches</div>
+          <div className="mt-1 text-[11px] text-slate-500">{urgentOrders.length} urgent · Click to review &amp; edit</div>
         </div>
 
         {/* Approved Reports */}
@@ -231,7 +257,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
         {/* Filter Tabs */}
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             onClick={() => setStatusFilter('all')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
@@ -264,6 +290,15 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           >
             Approved ({approvedReports.length})
           </button>
+          <button
+            onClick={() => setStatusFilter('work_orders')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
+              statusFilter === 'work_orders' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Wrench className="h-3 w-3" />
+            <span>Work Orders ({workOrders.length})</span>
+          </button>
         </div>
 
         {/* Search Input */}
@@ -279,159 +314,288 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </div>
       </div>
 
-      {/* Reports Table */}
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-700">
-                <th className="py-3 px-4">Report &amp; Machinery Asset</th>
-                <th className="py-3 px-4">Inspector &amp; Location</th>
-                <th className="py-3 px-4">Condition &amp; Safety</th>
-                <th className="py-3 px-4">Priority</th>
-                <th className="py-3 px-4 text-center">Approval Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredReports.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
-                    No reports matching filter criteria.
-                  </td>
+      {/* Main Table: Reports or Work Orders */}
+      {statusFilter === 'work_orders' ? (
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+          <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-slate-700" />
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">
+                Field Work Orders Management ({filteredWorkOrders.length})
+              </h3>
+            </div>
+            {isAdmin && (
+              <span className="rounded-sm bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+                Admin Edit &amp; Delete Enabled
+              </span>
+            )}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-700">
+                  <th className="py-3 px-4">Work Order # &amp; Title</th>
+                  <th className="py-3 px-4">Machinery Asset &amp; Facility</th>
+                  <th className="py-3 px-4">Priority &amp; Status</th>
+                  <th className="py-3 px-4">Assigned Tech &amp; Due Date</th>
+                  <th className="py-3 px-4">Scope / Directives</th>
+                  <th className="py-3 px-4 text-right">Admin Actions</th>
                 </tr>
-              ) : (
-                filteredReports.map((report) => {
-                  const isCritical =
-                    !report.summary.assetSafeToUse ||
-                    report.summary.overallCondition.includes('Major') ||
-                    report.summary.maintenancePriority === 'Urgent';
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredWorkOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                      No work orders matching search criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredWorkOrders.map((wo) => {
+                    const isUrgent = wo.priority === 'Urgent';
 
-                  return (
-                    <tr key={report.id} className="hover:bg-slate-50/60 transition-colors">
-                      {/* Report & Asset */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900 font-mono-numbers">{report.reportNumber}</div>
-                        <div className="text-xs text-slate-700 font-medium">{report.assetDetails.name}</div>
-                        <div className="text-[11px] text-slate-400">
-                          {report.assetDetails.assetNumber} · {report.assetDetails.category}
-                        </div>
-                      </td>
+                    return (
+                      <tr key={wo.id} className="hover:bg-slate-50/60 transition-colors">
+                        {/* Work Order # & Title */}
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900 font-mono-numbers">{wo.workOrderNumber}</div>
+                          <div className="text-xs font-semibold text-slate-800 max-w-xs">{wo.title}</div>
+                        </td>
 
-                      {/* Inspector & Location */}
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900">{report.inspectorName}</div>
-                        <div className="text-[11px] text-slate-500">{report.location}</div>
-                        <div className="text-[10px] text-slate-400 font-mono-numbers">
-                          {report.inspectionDate}
-                        </div>
-                      </td>
+                        {/* Machinery Asset & Facility */}
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-900">{wo.assetName}</div>
+                          <div className="text-[11px] text-slate-500 font-mono-numbers">{wo.assetNumber}</div>
+                          <div className="text-[11px] text-slate-600">{wo.facility}</div>
+                        </td>
 
-                      {/* Condition & Safety */}
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-slate-800">{report.summary.overallCondition}</div>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          {report.summary.assetSafeToUse ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                              <CheckCircle2 className="h-3 w-3" /> Safe to Use
+                        {/* Priority & Status */}
+                        <td className="py-3 px-4">
+                          <div className="space-y-1">
+                            <span
+                              className={`inline-block rounded-xs px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                isUrgent
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : wo.priority === 'High'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {wo.priority}
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">
-                              <AlertTriangle className="h-3 w-3" /> UNSAFE - SHUT DOWN
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                            <div className="text-[11px] font-medium text-slate-600 capitalize">
+                              {wo.status.replace('_', ' ')}
+                            </div>
+                          </div>
+                        </td>
 
-                      {/* Priority */}
-                      <td className="py-3 px-4">
-                        <span
-                          className={`font-bold text-[11px] ${
-                            report.summary.maintenancePriority === 'Urgent'
-                              ? 'text-rose-600'
-                              : report.summary.maintenancePriority === 'High'
-                              ? 'text-amber-600'
-                              : 'text-slate-600'
-                          }`}
-                        >
-                          {report.summary.maintenancePriority}
-                        </span>
-                      </td>
+                        {/* Assigned Tech & Due Date */}
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-900">{wo.assignedTo}</div>
+                          <div className="text-[11px] text-slate-400 font-mono-numbers">
+                            Due: {new Date(wo.dueDate).toLocaleDateString()}
+                          </div>
+                        </td>
 
-                      {/* Approval Status */}
-                      <td className="py-3 px-4 text-center">
-                        <span
-                          className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
-                            report.approvalStatus === 'approved'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : report.approvalStatus === 'submitted'
-                              ? 'bg-blue-100 text-blue-800'
-                              : report.approvalStatus === 'revision_requested'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {report.approvalStatus.replace('_', ' ')}
-                        </span>
-                      </td>
+                        {/* Scope / Directives */}
+                        <td className="py-3 px-4 max-w-xs">
+                          <p className="text-[11px] text-slate-600 line-clamp-2 bg-slate-50 p-1.5 rounded border border-slate-100">
+                            {wo.description}
+                          </p>
+                        </td>
 
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Admin Delete Action */}
-                          {currentUser.role === 'admin' && (
-                            <button
-                              type="button"
-                              onClick={() => setReportToDelete(report)}
-                              className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
-                              title="ADMIN: Delete Report"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
+                        {/* Admin Actions */}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Admin / Manager Edit */}
+                            {(isAdmin || currentUser.role === 'manager') && (
+                              <button
+                                type="button"
+                                onClick={() => setEditingWO(wo)}
+                                className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors"
+                                title="ADMIN: Edit Work Order"
+                              >
+                                <Edit3 className="h-3.5 w-3.5 text-slate-600" />
+                                <span>Edit</span>
+                              </button>
+                            )}
 
-                          <button
-                            type="button"
-                            onClick={() => onViewReport(report)}
-                            className="rounded-lg border border-slate-300 bg-white p-1.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                            title="Preview official PDF report"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-
-                          {(report.approvalStatus === 'submitted' || report.approvalStatus === 'under_review') && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedReportForReview(report);
-                                setReviewNotes('');
-                              }}
-                              className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-800"
-                            >
-                              Review &amp; Sign
-                            </button>
-                          )}
-
-                          {(report.approvalStatus === 'approved' || currentUser.role === 'admin') && (
-                            <button
-                              type="button"
-                              onClick={() => onEditReport(report)}
-                              className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                              title={currentUser.role === 'admin' ? 'ADMIN: Edit any report' : 'View / Edit'}
-                            >
-                              Edit
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                            {/* Admin Delete */}
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => setDeletingWO(wo)}
+                                className="flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 hover:border-rose-300 transition-colors"
+                                title="ADMIN: Delete Work Order"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-rose-600" />
+                                <span>Delete</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Reports Table */
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-700">
+                  <th className="py-3 px-4">Report &amp; Machinery Asset</th>
+                  <th className="py-3 px-4">Inspector &amp; Location</th>
+                  <th className="py-3 px-4">Condition &amp; Safety</th>
+                  <th className="py-3 px-4">Priority</th>
+                  <th className="py-3 px-4 text-center">Approval Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredReports.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                      No reports matching filter criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredReports.map((report) => {
+                    const isCritical =
+                      !report.summary.assetSafeToUse ||
+                      report.summary.overallCondition.includes('Major') ||
+                      report.summary.maintenancePriority === 'Urgent';
+
+                    return (
+                      <tr key={report.id} className="hover:bg-slate-50/60 transition-colors">
+                        {/* Report & Asset */}
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900 font-mono-numbers">{report.reportNumber}</div>
+                          <div className="text-xs text-slate-700 font-medium">{report.assetDetails.name}</div>
+                          <div className="text-[11px] text-slate-400">
+                            {report.assetDetails.assetNumber} · {report.assetDetails.category}
+                          </div>
+                        </td>
+
+                        {/* Inspector & Location */}
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-900">{report.inspectorName}</div>
+                          <div className="text-[11px] text-slate-500">{report.location}</div>
+                          <div className="text-[10px] text-slate-400 font-mono-numbers">
+                            {report.inspectionDate}
+                          </div>
+                        </td>
+
+                        {/* Condition & Safety */}
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-slate-800">{report.summary.overallCondition}</div>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            {report.summary.assetSafeToUse ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                <CheckCircle2 className="h-3 w-3" /> Safe to Use
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">
+                                <AlertTriangle className="h-3 w-3" /> UNSAFE - SHUT DOWN
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Priority */}
+                        <td className="py-3 px-4">
+                          <span
+                            className={`font-bold text-[11px] ${
+                              report.summary.maintenancePriority === 'Urgent'
+                                ? 'text-rose-600'
+                                : report.summary.maintenancePriority === 'High'
+                                ? 'text-amber-600'
+                                : 'text-slate-600'
+                            }`}
+                          >
+                            {report.summary.maintenancePriority}
+                          </span>
+                        </td>
+
+                        {/* Approval Status */}
+                        <td className="py-3 px-4 text-center">
+                          <span
+                            className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
+                              report.approvalStatus === 'approved'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : report.approvalStatus === 'submitted'
+                                ? 'bg-blue-100 text-blue-800'
+                                : report.approvalStatus === 'revision_requested'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {report.approvalStatus.replace('_', ' ')}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Admin Delete Action */}
+                            {currentUser.role === 'admin' && (
+                              <button
+                                type="button"
+                                onClick={() => setReportToDelete(report)}
+                                className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                title="ADMIN: Delete Report"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => onViewReport(report)}
+                              className="rounded-lg border border-slate-300 bg-white p-1.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                              title="Preview official PDF report"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+
+                            {(report.approvalStatus === 'submitted' || report.approvalStatus === 'under_review') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedReportForReview(report);
+                                  setReviewNotes('');
+                                }}
+                                className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-800"
+                              >
+                                Review &amp; Sign
+                              </button>
+                            )}
+
+                            {(report.approvalStatus === 'approved' || currentUser.role === 'admin') && (
+                              <button
+                                type="button"
+                                onClick={() => onEditReport(report)}
+                                className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                                title={currentUser.role === 'admin' ? 'ADMIN: Edit any report' : 'View / Edit'}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Review & Approve Modal */}
       {selectedReportForReview && (
@@ -488,6 +652,12 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
               />
             </div>
+
+            {reviewError && (
+              <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-700 font-medium">
+                {reviewError}
+              </div>
+            )}
 
             <div className="flex items-center justify-between border-t border-slate-200 pt-4">
               <button
@@ -695,6 +865,28 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             storageService.deleteReport(id);
           }
           setReportToDelete(null);
+        }}
+      />
+
+      {/* Admin Work Order Edit Modal */}
+      <WorkOrderEditModal
+        workOrder={editingWO}
+        isOpen={Boolean(editingWO)}
+        onClose={() => setEditingWO(null)}
+        onSave={(updated) => {
+          storageService.saveWorkOrder(updated);
+          setEditingWO(null);
+        }}
+      />
+
+      {/* Admin Work Order Delete Confirmation Modal */}
+      <WorkOrderDeleteModal
+        workOrder={deletingWO}
+        isOpen={Boolean(deletingWO)}
+        onClose={() => setDeletingWO(null)}
+        onConfirm={(id) => {
+          storageService.deleteWorkOrder(id);
+          setDeletingWO(null);
         }}
       />
     </div>

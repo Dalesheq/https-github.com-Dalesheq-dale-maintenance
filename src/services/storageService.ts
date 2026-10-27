@@ -117,6 +117,16 @@ class StorageService {
     return true; // Allow delete for all authorized field engineers
   }
 
+  public canEditWorkOrder(): boolean {
+    const user = this.getCurrentUser();
+    return user.role === 'admin' || user.role === 'manager';
+  }
+
+  public canDeleteWorkOrder(): boolean {
+    const user = this.getCurrentUser();
+    return user.role === 'admin';
+  }
+
   // Reports Management
   public getReports(): Report[] {
     try {
@@ -276,6 +286,18 @@ class StorageService {
     }
     this.saveWorkOrders(list);
     this.notifyListeners();
+  }
+
+  public deleteWorkOrder(workOrderId: string): boolean {
+    const list = this.getWorkOrders().filter((w) => w.id !== workOrderId);
+    this.saveWorkOrders(list);
+
+    // Also remove notifications linked to this workOrderId
+    const notifications = this.getNotifications().filter((n) => n.workOrderId !== workOrderId);
+    this.saveNotifications(notifications);
+
+    this.notifyListeners();
+    return true;
   }
 
   public dispatchUrgentWorkOrder(woData: Omit<WorkOrder, 'id' | 'assignedAt' | 'isPushNotified'>): WorkOrder {
