@@ -18,6 +18,7 @@ import {
   Trash2,
   Edit3,
   Wrench,
+  Lock,
 } from 'lucide-react';
 import { Report, WorkOrder, ReportType } from '../types';
 import { storageService } from '../services/storageService';
@@ -26,6 +27,7 @@ import { USERS } from '../data/initialData';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { WorkOrderEditModal } from './WorkOrderEditModal';
 import { WorkOrderDeleteModal } from './WorkOrderDeleteModal';
+import { ManagementLoginModal } from './ManagementLoginModal';
 
 interface ManagerDashboardProps {
   reports: Report[];
@@ -65,6 +67,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
   const currentUser = storageService.getCurrentUser();
   const isAdmin = storageService.isAdmin();
+  const isManager = storageService.isManagement();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Metrics
   const pendingReports = reports.filter((r) => r.approvalStatus === 'submitted' || r.approvalStatus === 'under_review');
@@ -152,6 +156,42 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     setWoTitle('');
     setWoDescription('');
   };
+
+  if (!isManager) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-12 text-center">
+        <div className="rounded-2xl border border-amber-200 bg-white p-8 shadow-xs">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-300 text-amber-700">
+            <Lock className="h-7 w-7" />
+          </div>
+          <h2 className="mt-4 text-xl font-bold text-slate-900">
+            Management &amp; QA Sign-Off Portal
+          </h2>
+          <p className="mt-2 text-sm text-slate-600 max-w-lg mx-auto">
+            Reviewing inspection reports, granting equipment safety authorization, and dispatching remediation tickets is restricted to the Management Category (Nico van Wyk, SHEQ Director).
+          </p>
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setIsLoginModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-red-700 shadow-xs transition-colors"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>Login as Management Category (PIN: 1234)</span>
+            </button>
+          </div>
+        </div>
+
+        {isLoginModalOpen && (
+          <ManagementLoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={() => setIsLoginModalOpen(false)}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">

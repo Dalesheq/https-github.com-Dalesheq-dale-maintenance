@@ -14,12 +14,13 @@ import { OfflineSyncCenter } from './components/OfflineSyncCenter';
 import { CustomTemplateBuilder } from './components/CustomTemplateBuilder';
 import { AnalyticsTrendsDashboard } from './components/AnalyticsTrendsDashboard';
 import { storageService } from './services/storageService';
-import { Report, WorkOrder, PushNotification } from './types';
+import { Report, WorkOrder, PushNotification, UserProfile } from './types';
 import { ReportTemplate, REPORT_TEMPLATES } from './data/reportTemplates';
 import { Bell, AlertTriangle, ArrowRight, X } from 'lucide-react';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>('reports');
+  const [currentUser, setCurrentUser] = useState<UserProfile>(storageService.getCurrentUser());
   const [reports, setReports] = useState<Report[]>(storageService.getReports());
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(storageService.getWorkOrders());
   const [selectedReportForView, setSelectedReportForView] = useState<Report | null>(null);
@@ -32,6 +33,7 @@ export default function App() {
     const unsub = storageService.subscribe(() => {
       setReports(storageService.getReports());
       setWorkOrders(storageService.getWorkOrders());
+      setCurrentUser(storageService.getCurrentUser());
     });
 
     // Real-time Push Notification alert listener
@@ -325,6 +327,8 @@ export default function App() {
               reports={reports}
               workOrders={workOrders}
               onCreateWorkOrder={() => setCurrentTab('manager-dashboard')}
+              onNavigateToReports={() => setCurrentTab('reports')}
+              onNavigateToWorkOrders={() => setCurrentTab('work-orders')}
             />
           </div>
         ) : currentTab === 'work-orders' ? (

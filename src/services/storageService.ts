@@ -102,6 +102,64 @@ class StorageService {
     return this.getCurrentUser().role === 'admin';
   }
 
+  public isManagement(): boolean {
+    const role = this.getCurrentUser().role;
+    return role === 'admin' || role === 'manager';
+  }
+
+  // Scoped reports: users may only see what pertains to them
+  public getReportsForUser(targetUser?: UserProfile): Report[] {
+    const user = targetUser || this.getCurrentUser();
+    const allReports = this.getReports();
+    if (user.role === 'admin' || user.role === 'manager') {
+      return allReports;
+    }
+    // Field Engineers only see reports inspected by them or prepared by them
+    const normalizedUserName = user.name.toLowerCase().trim();
+    const normalizedEmail = user.email.toLowerCase().trim();
+    return allReports.filter((r) => {
+      const inspector = (r.inspectorName || '').toLowerCase().trim();
+      const prepared = (r.preparedBy || '').toLowerCase().trim();
+      return (
+        inspector === normalizedUserName ||
+        inspector.includes(normalizedUserName) ||
+        prepared === normalizedEmail
+      );
+    });
+  }
+
+  // Scoped work orders: technicians only see what is assigned to them
+  public getWorkOrdersForUser(targetUser?: UserProfile): WorkOrder[] {
+    const user = targetUser || this.getCurrentUser();
+    const allWorkOrders = this.getWorkOrders();
+    if (user.role === 'admin' || user.role === 'manager') {
+      return allWorkOrders;
+    }
+    const normalizedUserName = user.name.toLowerCase().trim();
+    return allWorkOrders.filter((wo) => {
+      const assigned = (wo.assignedTo || '').toLowerCase().trim();
+      return assigned === normalizedUserName || assigned.includes(normalizedUserName);
+    });
+  }
+
+  // Scoped notifications: only notifications pertaining to user
+  public getNotificationsForUser(targetUser?: UserProfile): PushNotification[] {
+    const user = targetUser || this.getCurrentUser();
+    const allNotifs = this.getNotifications();
+    if (user.role === 'admin' || user.role === 'manager') {
+      return allNotifs;
+    }
+    const myWorkOrderIds = new Set(this.getWorkOrdersForUser(user).map((w) => w.id));
+    const myReportIds = new Set(this.getReportsForUser(user).map((r) => r.id));
+
+    return allNotifs.filter((notif) => {
+      if (notif.workOrderId && myWorkOrderIds.has(notif.workOrderId)) return true;
+      if (notif.reportId && myReportIds.has(notif.reportId)) return true;
+      if (notif.message.toLowerCase().includes(user.name.toLowerCase())) return true;
+      return false;
+    });
+  }
+
   public canEditReport(report?: Report): boolean {
     const user = this.getCurrentUser();
     if (user.role === 'admin') return true;

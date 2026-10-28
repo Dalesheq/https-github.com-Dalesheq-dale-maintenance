@@ -33,14 +33,26 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   onNewWorkOrderClick,
 }) => {
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'Urgent' | 'High' | 'Medium' | 'Routine'>('all');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingWO, setEditingWO] = useState<WorkOrder | null>(null);
   const [deletingWO, setDeletingWO] = useState<WorkOrder | null>(null);
 
   const currentUser = storageService.getCurrentUser();
   const isAdmin = storageService.isAdmin();
+  const isManagement = storageService.isManagement();
 
-  const filteredOrders = workOrders.filter((wo) => {
+  // Rule: Users may only see what pertains to them
+  const userScopedOrders = React.useMemo(() => {
+    if (isManagement) return workOrders;
+    const nameLower = (currentUser.name || '').toLowerCase().trim();
+    return workOrders.filter((wo) => {
+      const assigned = (wo.assignedTo || '').toLowerCase().trim();
+      return assigned === nameLower || assigned.includes(nameLower);
+    });
+  }, [workOrders, currentUser, isManagement]);
+
+  const filteredOrders = userScopedOrders.filter((wo) => {
     const matchesPriority = priorityFilter === 'all' || wo.priority === priorityFilter;
     const matchesSearch =
       wo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -49,7 +61,13 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
       wo.assetNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       wo.workOrderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       wo.assignedTo.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesPriority && matchesSearch;
+
+    const matchesAssignee =
+      !isManagement || assigneeFilter === 'all'
+        ? true
+        : wo.assignedTo.toLowerCase().includes(assigneeFilter.toLowerCase());
+
+    return matchesPriority && matchesSearch && matchesAssignee;
   });
 
   const handleSaveEdit = (updated: WorkOrder) => {
@@ -88,16 +106,25 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-slate-700" />
-            <h2 className="text-xl font-extrabold text-slate-900">
-              Field Work Orders &amp; Urgent Assignments
-            </h2>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              {isManagement ? 'Management Dispatch Console' : 'Field Technician Queue'}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="text-xs font-semibold text-slate-700">
+              {isManagement ? 'Fleet Oversight' : `Assigned to ${currentUser.name}`}
+            </span>
           </div>
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            {isManagement ? 'Field Work Orders & Fleet Dispatches' : 'My Assigned Work Orders'}
+          </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Real-time dispatched service orders, overhaul requests, and final commissioning tasks.
+            {isManagement
+              ? 'Real-time dispatched service orders, overhaul requests, and final commissioning tasks across all engineers.'
+              : `Maintenance directives and commissioning punchlists assigned specifically to ${currentUser.name}.`}
           </p>
         </div>
 
-        {onNewWorkOrderClick && (
+        {onNewWorkOrderClick && isManagement && (
           <button
             type="button"
             onClick={onNewWorkOrderClick}
@@ -111,34 +138,34 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
 
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto">
           <button
             onClick={() => setPriorityFilter('all')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors ${
               priorityFilter === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            All Orders ({workOrders.length})
+            All Orders ({userScopedOrders.length})
           </button>
           <button
             onClick={() => setPriorityFilter('Urgent')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors ${
               priorityFilter === 'Urgent' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            🚨 Urgent ({workOrders.filter((w) => w.priority === 'Urgent').length})
+            🚨 Urgent ({userScopedOrders.filter((w) => w.priority === 'Urgent').length})
           </button>
           <button
             onClick={() => setPriorityFilter('High')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors ${
               priorityFilter === 'High' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            High Priority ({workOrders.filter((w) => w.priority === 'High').length})
+            High Priority ({userScopedOrders.filter((w) => w.priority === 'High').length})
           </button>
           <button
             onClick={() => setPriorityFilter('Medium')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors ${
               priorityFilter === 'Medium' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -146,15 +173,31 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
           </button>
         </div>
 
-        <div className="relative min-w-[240px]">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search work order #, asset, or tech..."
-            className="w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
-          />
+        <div className="flex items-center gap-2">
+          {/* Management Assignee Filter */}
+          {isManagement && (
+            <select
+              value={assigneeFilter}
+              onChange={(e) => setAssigneeFilter(e.target.value)}
+              className="rounded-lg border border-purple-300 bg-purple-50/60 px-2.5 py-1.5 text-xs font-semibold text-purple-950 focus:border-purple-600 focus:outline-hidden"
+            >
+              <option value="all">All Engineers (Fleet View)</option>
+              <option value="Kyle Kingma">Kyle Kingma</option>
+              <option value="Sean Frost">Sean Frost</option>
+              <option value="Raynard Kruger">Raynard Kruger</option>
+            </select>
+          )}
+
+          <div className="relative min-w-[220px]">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search work order #, asset..."
+              className="w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
+            />
+          </div>
         </div>
       </div>
 

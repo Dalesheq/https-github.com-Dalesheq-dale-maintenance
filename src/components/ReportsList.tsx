@@ -48,19 +48,33 @@ export const ReportsList: React.FC<ReportsListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'submitted' | 'draft' | 'urgent'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [inspectorFilter, setInspectorFilter] = useState<string>('all');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const currentUser = storageService.getCurrentUser();
   const isAdmin = currentUser.role === 'admin';
+  const isManagement = storageService.isManagement();
 
   const handleDeleteClick = (e: React.MouseEvent, report: Report) => {
     e.stopPropagation();
     setReportToDelete(report);
   };
 
-  const filteredReports = reports.filter((r) => {
+  // Rule: Users may only see what pertains to them
+  const userScopedReports = React.useMemo(() => {
+    if (isManagement) return reports;
+    const nameLower = (currentUser.name || '').toLowerCase().trim();
+    const emailLower = (currentUser.email || '').toLowerCase().trim();
+    return reports.filter((r) => {
+      const inspector = (r.inspectorName || '').toLowerCase().trim();
+      const prepared = (r.preparedBy || '').toLowerCase().trim();
+      return inspector === nameLower || inspector.includes(nameLower) || prepared === emailLower;
+    });
+  }, [reports, currentUser, isManagement]);
+
+  const filteredReports = userScopedReports.filter((r) => {
     const matchesSearch =
       r.reportNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -78,7 +92,12 @@ export const ReportsList: React.FC<ReportsListProps> = ({
 
     const matchesType = typeFilter === 'all' ? true : r.reportType === typeFilter;
 
-    return matchesSearch && matchesStatus && matchesType;
+    const matchesInspector =
+      !isManagement || inspectorFilter === 'all'
+        ? true
+        : r.inspectorName.toLowerCase().includes(inspectorFilter.toLowerCase());
+
+    return matchesSearch && matchesStatus && matchesType && matchesInspector;
   });
 
   const handleDownloadPdf = async (e: React.MouseEvent, report: Report) => {
@@ -101,16 +120,25 @@ export const ReportsList: React.FC<ReportsListProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Field Operations &amp; Quality Engineering
+              {isManagement ? 'Management & Executive Oversight' : 'Field Operations · Technician Scope'}
             </span>
             <span className="text-slate-300">·</span>
             <span className="text-xs font-semibold text-slate-700">Dale Automation</span>
+            {!isManagement && (
+              <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 border border-slate-200">
+                Logged in as {currentUser.name}
+              </span>
+            )}
           </div>
           <h2 className="mt-1 text-xl font-extrabold text-slate-900">
-            Machinery Commissioning, Inspection &amp; Service Reports
+            {isManagement
+              ? 'Machinery Commissioning, Inspection & Service Reports'
+              : 'My Field Inspection & Commissioning Reports'}
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Offline-enabled field reporting for heavy industrial spiral coolers, freezers, ovens, and ammonia pump stations.
+            {isManagement
+              ? 'Executive fleet overview across all Dale Automation plants, commissioning lines, and field engineers.'
+              : `Showing inspection sheets and commissioning records pertaining to ${currentUser.name}.`}
           </p>
         </div>
 
@@ -161,7 +189,7 @@ export const ReportsList: React.FC<ReportsListProps> = ({
               statusFilter === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            All Reports ({reports.length})
+            All Reports ({userScopedReports.length})
           </button>
           <button
             onClick={() => setStatusFilter('approved')}
@@ -169,7 +197,7 @@ export const ReportsList: React.FC<ReportsListProps> = ({
               statusFilter === 'approved' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            Approved ({reports.filter((r) => r.approvalStatus === 'approved').length})
+            Approved ({userScopedReports.filter((r) => r.approvalStatus === 'approved').length})
           </button>
           <button
             onClick={() => setStatusFilter('submitted')}
@@ -177,7 +205,7 @@ export const ReportsList: React.FC<ReportsListProps> = ({
               statusFilter === 'submitted' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            Pending Review ({reports.filter((r) => r.approvalStatus === 'submitted').length})
+            Pending Review ({userScopedReports.filter((r) => r.approvalStatus === 'submitted').length})
           </button>
           <button
             onClick={() => setStatusFilter('urgent')}
@@ -185,11 +213,25 @@ export const ReportsList: React.FC<ReportsListProps> = ({
               statusFilter === 'urgent' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            🚨 Urgent Repairs ({reports.filter((r) => !r.summary.assetSafeToUse || r.summary.maintenancePriority === 'Urgent').length})
+            🚨 Urgent Repairs ({userScopedReports.filter((r) => !r.summary.assetSafeToUse || r.summary.maintenancePriority === 'Urgent').length})
           </button>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Management Inspector Filter */}
+          {isManagement && (
+            <select
+              value={inspectorFilter}
+              onChange={(e) => setInspectorFilter(e.target.value)}
+              className="rounded-lg border border-purple-300 bg-purple-50/60 px-2.5 py-1.5 text-xs font-semibold text-purple-950 focus:border-purple-600 focus:outline-hidden"
+            >
+              <option value="all">All Inspectors (Fleet View)</option>
+              <option value="Kyle Kingma">Kyle Kingma</option>
+              <option value="Sean Frost">Sean Frost</option>
+              <option value="Raynard Kruger">Raynard Kruger</option>
+            </select>
+          )}
+
           {/* Equipment Type Filter */}
           <select
             value={typeFilter}
