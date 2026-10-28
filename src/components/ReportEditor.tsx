@@ -17,6 +17,8 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldAlert,
+  ZoomIn,
+  X,
 } from 'lucide-react';
 import { Report, ChecklistSection, ChecklistItem, PhotoAttachment, SignatureData, ItemStatus, ApprovalStatus } from '../types';
 import { REPORT_TEMPLATES } from '../data/reportTemplates';
@@ -43,6 +45,7 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
   const [saveToast, setSaveToast] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editorLightboxPhoto, setEditorLightboxPhoto] = useState<PhotoAttachment | null>(null);
 
   const currentUser = storageService.getCurrentUser();
   const isAdmin = currentUser.role === 'admin';
@@ -792,18 +795,28 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
             {report.photos.map((photo) => (
               <div
                 key={photo.id}
-                className="group relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                className="group relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50 transition-all hover:border-slate-300 hover:shadow-xs"
               >
-                <img
-                  src={photo.url}
-                  alt={photo.caption}
-                  className="h-44 w-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+                <div
+                  className="relative cursor-pointer overflow-hidden"
+                  onClick={() => setEditorLightboxPhoto(photo)}
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.caption}
+                    className="h-44 w-full object-cover transition-transform duration-200 group-hover:scale-102"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <span className="rounded-md bg-slate-900/80 px-2 py-1 text-[11px] font-semibold text-white flex items-center gap-1 shadow-xs">
+                      <ZoomIn className="h-3 w-3" /> Inspect Detail
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => handleDeletePhoto(photo.id)}
-                  className="absolute top-2 right-2 rounded-full bg-slate-950/70 p-1 text-white hover:bg-rose-600"
+                  className="absolute top-2 right-2 rounded-full bg-slate-950/70 p-1.5 text-white hover:bg-rose-600 transition-colors shadow-xs"
                   title="Delete photo"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -816,9 +829,16 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
                   ) : (
                     <div className="text-[11px] font-bold text-slate-900">General Overview</div>
                   )}
-                  <p className="mt-0.5 text-xs text-slate-600">{photo.caption}</p>
-                  <div className="mt-1 text-[10px] text-slate-400 font-mono-numbers">
-                    {new Date(photo.timestamp).toLocaleDateString()}
+                  <p className="mt-0.5 text-xs text-slate-600 line-clamp-2">{photo.caption}</p>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400 font-mono-numbers">
+                    <span>{new Date(photo.timestamp).toLocaleDateString()}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditorLightboxPhoto(photo)}
+                      className="text-blue-600 hover:text-blue-800 font-semibold"
+                    >
+                      View Full Detail
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1095,6 +1115,41 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleConfirmDelete}
       />
+
+      {/* High Resolution Detail Verification Lightbox */}
+      {editorLightboxPhoto && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+          onClick={() => setEditorLightboxPhoto(null)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
+            <button
+              onClick={() => setEditorLightboxPhoto(null)}
+              className="absolute top-2 right-2 rounded-full bg-slate-900/80 p-2 text-white hover:bg-slate-800 z-10"
+              aria-label="Close"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img
+              src={editorLightboxPhoto.url}
+              alt={editorLightboxPhoto.caption}
+              className="max-h-[80vh] w-auto object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="mt-3 text-center text-xs text-slate-200">
+              <span className="font-bold">
+                {editorLightboxPhoto.snItem ? `Item #${editorLightboxPhoto.snItem}: ${editorLightboxPhoto.itemName || ''} · ` : ''}
+              </span>
+              <span>{editorLightboxPhoto.caption}</span>
+              {editorLightboxPhoto.gps && (
+                <div className="text-[11px] text-sky-400 font-mono-numbers mt-0.5">
+                  GPS: {editorLightboxPhoto.gps.latitude.toFixed(4)}, {editorLightboxPhoto.gps.longitude.toFixed(4)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Camera, Upload, X, Check, Image as ImageIcon } from 'lucide-react';
+import { Camera, Upload, X, Check, Image as ImageIcon, CheckCircle2, ZoomIn, Eye, Sparkles } from 'lucide-react';
 import { PhotoAttachment, ChecklistSection } from '../types';
+import { compressIndustrialImage, formatBytes, CompressionResult } from '../utils/imageCompressor';
 
 interface PhotoUploadModalProps {
   isOpen: boolean;
@@ -15,32 +16,32 @@ interface PhotoUploadModalProps {
 const PRESET_INDUSTRIAL_PHOTOS = [
   {
     name: 'Modular Spiral Conveyor Belt & Rail',
-    url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=800&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=1600&auto=format&fit=crop&q=85',
     caption: 'Wearstrip and modular plastic links alignment check',
   },
   {
     name: 'Damaged Chain Links & Pins',
-    url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1600&auto=format&fit=crop&q=85',
     caption: 'Few broken chain links and loose retaining clips detected',
   },
   {
     name: 'Surefire Belt Oiler System',
-    url: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=800&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?w=1600&auto=format&fit=crop&q=85',
     caption: 'Automatic lubricator reservoir and Festo pneumatic lines',
   },
   {
     name: 'Main Electrical Control Panel & VFDs',
-    url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1600&auto=format&fit=crop&q=85',
     caption: 'Main PLC enclosure terminal connections and safety relays',
   },
   {
     name: 'Flame Tubes Refractory Failure',
-    url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=800&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=1600&auto=format&fit=crop&q=85',
     caption: 'Severe refractory erosion and crack on 2.4m bake chamber flame tube',
   },
   {
     name: 'Heavy Industrial Drive Gearbox & Motor',
-    url: 'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=800&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=1600&auto=format&fit=crop&q=85',
     caption: 'SEW-Eurodrive reduction unit and shaft coupling alignment',
   },
 ];
@@ -57,6 +58,8 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
   const [caption, setCaption] = useState('');
   const [selectedSn, setSelectedSn] = useState<number | undefined>(initialSnItem);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [compressionStats, setCompressionStats] = useState<CompressionResult | null>(null);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   if (!isOpen) return null;
 
@@ -69,48 +72,40 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
     }))
   );
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsProcessing(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        // Downscale image to max 1200px width/height for fast offline storage
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
-        let { width, height } = img;
+    setCompressionStats(null);
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = Math.round((width * MAX_HEIGHT) / height);
-            height = MAX_HEIGHT;
-          }
-        }
+    try {
+      // High-detail industrial compression: keeps max 2048px for fine serial plates/cracks
+      const result = await compressIndustrialImage(file, {
+        maxWidth: 2048,
+        maxHeight: 2048,
+        quality: 0.88,
+      });
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedUrl = canvas.toDataURL('image/jpeg', 0.82);
-          setPhotoUrl(compressedUrl);
-        } else {
-          setPhotoUrl(event.target?.result as string);
-        }
-        setIsProcessing(false);
+      setPhotoUrl(result.dataUrl);
+      setCompressionStats(result);
+    } catch (err) {
+      console.error('High-detail compression error:', err);
+      // Fallback to FileReader
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPhotoUrl(event.target?.result as string);
       };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSelectPreset = (preset: typeof PRESET_INDUSTRIAL_PHOTOS[0]) => {
+    setPhotoUrl(preset.url);
+    setCaption(preset.caption);
+    setCompressionStats(null);
   };
 
   const handleSave = () => {
@@ -132,6 +127,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
     onClose();
     setPhotoUrl('');
     setCaption('');
+    setCompressionStats(null);
   };
 
   return (
@@ -140,7 +136,10 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div className="flex items-center gap-2">
             <Camera className="h-5 w-5 text-slate-800" />
-            <h3 className="text-base font-bold text-slate-900">Attach Site Inspection Photo</h3>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Attach Site Inspection Photo</h3>
+              <p className="text-[11px] text-slate-500">High-detail compression preserves machine plates and fine cracks</p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -156,7 +155,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
           <div>
             <label className="block text-xs font-semibold text-slate-700">Capture or Upload Image</label>
             <div className="mt-1.5 flex items-center gap-3">
-              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
                 <Upload className="h-4 w-4 text-slate-500" />
                 <span>Upload from Device</span>
                 <input
@@ -167,9 +166,9 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                 />
               </label>
 
-              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                 <Camera className="h-4 w-4 text-slate-500" />
-                <span>Use Camera</span>
+                <span>Take Photo</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -181,20 +180,49 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
             </div>
           </div>
 
+          {/* Processing State */}
+          {isProcessing && (
+            <div className="flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800 animate-pulse">
+              <Sparkles className="h-4 w-4 text-blue-600 animate-spin" />
+              <span>Optimizing high-detail image (preserving serial plates and structural lines)...</span>
+            </div>
+          )}
+
+          {/* Compression Stats Indicator */}
+          {compressionStats && !isProcessing && (
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-bold text-emerald-900">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  Detail-Preserved Compression Complete
+                </span>
+                <span className="font-mono-numbers text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                  {compressionStats.compressionRatio}% saved
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-emerald-700 pt-0.5">
+                <span>
+                  Original: <strong>{formatBytes(compressionStats.originalSizeBytes)}</strong> ({compressionStats.originalWidth}×{compressionStats.originalHeight}px)
+                </span>
+                <span>→</span>
+                <span>
+                  Compressed: <strong>{formatBytes(compressionStats.compressedSizeBytes)}</strong> ({compressionStats.width}×{compressionStats.height}px)
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Preset Photos for Fast Field Simulation */}
           <div>
             <label className="block text-xs font-semibold text-slate-700">
-              Or pick sample Dale Automation equipment photo:
+              Or pick Dale Automation sample equipment photo:
             </label>
             <div className="mt-1.5 grid grid-cols-3 gap-2">
               {PRESET_INDUSTRIAL_PHOTOS.map((preset, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => {
-                    setPhotoUrl(preset.url);
-                    setCaption(preset.caption);
-                  }}
+                  onClick={() => handleSelectPreset(preset)}
                   className={`group relative overflow-hidden rounded-lg border text-left transition-all ${
                     photoUrl === preset.url ? 'border-blue-600 ring-2 ring-blue-500' : 'border-slate-200 hover:border-slate-300'
                   }`}
@@ -213,15 +241,23 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
             </div>
           </div>
 
-          {/* Photo Preview */}
+          {/* Photo Preview with Lightbox Zoom Action */}
           {photoUrl && (
-            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-900">
+            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-900 group">
               <img
                 src={photoUrl}
                 alt="Inspection preview"
-                className="max-h-56 w-full object-contain"
+                className="max-h-60 w-full object-contain"
                 referrerPolicy="no-referrer"
               />
+              <button
+                type="button"
+                onClick={() => setShowLightbox(true)}
+                className="absolute top-2 right-2 rounded-lg bg-black/70 px-2.5 py-1 text-xs text-white backdrop-blur-xs flex items-center gap-1 hover:bg-black/90 transition-colors shadow-sm"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span>Inspect Full Detail</span>
+              </button>
               {currentGps && (
                 <div className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-[10px] text-white backdrop-blur-xs font-mono-numbers">
                   GPS: {currentGps.latitude.toFixed(4)}, {currentGps.longitude.toFixed(4)}
@@ -281,6 +317,33 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Full Detail Lightbox Inspection Modal */}
+      {showLightbox && photoUrl && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+          onClick={() => setShowLightbox(false)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] overflow-auto flex flex-col items-center">
+            <button
+              onClick={() => setShowLightbox(false)}
+              className="absolute top-2 right-2 rounded-full bg-slate-900/80 p-2 text-white hover:bg-slate-800 z-10"
+              aria-label="Close Preview"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img
+              src={photoUrl}
+              alt="High detail equipment verification"
+              className="max-h-[85vh] w-auto object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="mt-3 text-center text-xs text-slate-300">
+              High Resolution Industrial Detail Verification View
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

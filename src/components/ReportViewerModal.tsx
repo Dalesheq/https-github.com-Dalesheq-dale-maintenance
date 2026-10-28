@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Download, Printer, Edit, ShieldCheck, CheckCircle2, AlertTriangle, XCircle, MapPin, Trash2 } from 'lucide-react';
-import { Report } from '../types';
+import { X, Download, Printer, Edit, ShieldCheck, CheckCircle2, AlertTriangle, XCircle, MapPin, Trash2, Eye, ZoomIn } from 'lucide-react';
+import { Report, PhotoAttachment } from '../types';
 import { generateDaleAutomationPDF } from '../utils/pdfGenerator';
 import { storageService } from '../services/storageService';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
@@ -22,6 +22,7 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<PhotoAttachment | null>(null);
 
   if (!isOpen || !report) return null;
 
@@ -43,7 +44,7 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
       const pdf = await generateDaleAutomationPDF(report);
       pdf.save(`${report.reportNumber.replace(/\s+/g, '_')}_Official_Report.pdf`);
     } catch (err) {
-      console.error(err);
+      console.error('PDF Generation Error:', err);
     } finally {
       setIsDownloading(false);
     }
@@ -118,7 +119,7 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
           </div>
         </div>
 
-        {/* Report Content - High-Fidelity Official Dale Automation PDF Simulation */}
+        {/* Report Content - High-Fidelity Official Dale Automation Layout */}
         <div className="overflow-y-auto p-6 sm:p-10 bg-white text-slate-900 space-y-6">
           {/* Header Row */}
           <div className="flex items-start justify-between border-b border-slate-200 pb-4">
@@ -128,7 +129,7 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
             </div>
 
             {/* Dale Automation Logo Graphic */}
-            <div className="flex items-center gap-1.5 text-right">
+            <div className="flex items-center gap-2 text-right">
               <div className="flex flex-col items-end">
                 <span className="text-xs font-black tracking-widest text-rose-600">DALE</span>
                 <span className="text-[10px] font-black tracking-wider text-blue-600">AUTOMATION</span>
@@ -173,106 +174,246 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
             </div>
           </div>
 
-          {/* Checklist Sections */}
+          {/* Checklist Sections - Exactly matching the user's attached design */}
           <div className="space-y-6">
-            {report.sections.map((section) => (
-              <div key={section.id} className="border border-slate-300 rounded-lg overflow-hidden page-break-inside-avoid">
-                <div className="bg-slate-100 px-3 py-2 font-bold text-xs text-slate-900 border-b border-slate-300">
-                  {section.title}
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-300 text-[10px] font-bold text-slate-700">
-                        <th className="py-1.5 px-2 w-10 text-center">SN</th>
-                        <th className="py-1.5 px-2 min-w-[140px]">Inspection Item</th>
-                        <th className="py-1.5 px-2 min-w-[160px]">Note</th>
-                        <th className="py-1.5 px-2 text-center w-14">Good</th>
-                        <th className="py-1.5 px-2 text-center w-14">Repair</th>
-                        <th className="py-1.5 px-2 text-center w-14">Replace</th>
-                        <th className="py-1.5 px-2 text-center w-10">NA</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {section.items.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50">
-                          <td className="py-1.5 px-2 text-center font-bold text-slate-600 font-mono-numbers">
-                            {item.sn}
-                          </td>
-                          <td className="py-1.5 px-2 font-medium text-slate-900">{item.name}</td>
-                          <td className="py-1.5 px-2 text-slate-600">
-                            {item.notes || '—'}
-                            {item.readings && (
-                              <div className="font-semibold text-blue-700 font-mono-numbers">{item.readings}</div>
-                            )}
-                          </td>
-                          {/* Good */}
-                          <td className="py-1.5 px-2 text-center">
-                            {item.status === 'good' || item.status === 'pass' || item.status === 'yes' || item.status === 'ok' ? (
-                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-bold">
-                                ✓
-                              </span>
-                            ) : (
-                              <span className="text-slate-300">○</span>
-                            )}
-                          </td>
-                          {/* Repair */}
-                          <td className="py-1.5 px-2 text-center">
-                            {item.status === 'repair' ? (
-                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold">
-                                ⚠
-                              </span>
-                            ) : (
-                              <span className="text-slate-300">○</span>
-                            )}
-                          </td>
-                          {/* Replace / Fail / No / Faulty */}
-                          <td className="py-1.5 px-2 text-center">
-                            {item.status === 'replace' || item.status === 'fail' || item.status === 'no' || item.status === 'faulty' ? (
-                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold">
-                                ✕
-                              </span>
-                            ) : (
-                              <span className="text-slate-300">○</span>
-                            )}
-                          </td>
-                          {/* NA */}
-                          <td className="py-1.5 px-2 text-center">
-                            {item.status === 'na' ? (
-                              <span className="font-bold text-slate-600">—</span>
-                            ) : (
-                              <span className="text-slate-300">○</span>
-                            )}
-                          </td>
+            {report.sections.map((section) => {
+              const firstItem = section.items[0];
+              const isPassFail = firstItem?.statusType === 'pass_fail';
+              const isYesNo = firstItem?.statusType === 'yes_no';
+              const isOkFaulty = firstItem?.statusType === 'ok_faulty';
+              const isReadings = firstItem?.statusType === 'readings_only';
+
+              return (
+                <div key={section.id} className="border border-slate-300 rounded-lg overflow-hidden page-break-inside-avoid shadow-2xs">
+                  <div className="bg-slate-100 px-3.5 py-2 font-bold text-xs text-slate-900 border-b border-slate-300">
+                    {section.title}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-300 text-[10px] font-bold text-slate-700">
+                          <th className="py-2 px-2.5 w-10 text-center">SN</th>
+                          <th className="py-2 px-2.5 min-w-[150px]">Inspection Item</th>
+                          <th className="py-2 px-2.5 min-w-[170px]">Note</th>
+
+                          {isReadings ? (
+                            <th className="py-2 px-2.5 text-center min-w-[100px]">Readings</th>
+                          ) : isPassFail ? (
+                            <>
+                              <th className="py-2 px-2 text-center w-14">Pass</th>
+                              <th className="py-2 px-2 text-center w-14">Fail</th>
+                              <th className="py-2 px-2 text-center w-10">NA</th>
+                            </>
+                          ) : isYesNo ? (
+                            <>
+                              <th className="py-2 px-2 text-center w-14">Yes</th>
+                              <th className="py-2 px-2 text-center w-14">No</th>
+                              <th className="py-2 px-2 text-center w-10">NA</th>
+                            </>
+                          ) : isOkFaulty ? (
+                            <>
+                              <th className="py-2 px-2 text-center w-14">OK</th>
+                              <th className="py-2 px-2 text-center w-14">Faulty</th>
+                              <th className="py-2 px-2 text-center w-10">NA</th>
+                            </>
+                          ) : (
+                            <>
+                              <th className="py-2 px-2 text-center w-14">Good</th>
+                              <th className="py-2 px-2 text-center w-14">Repair</th>
+                              <th className="py-2 px-2 text-center w-14">Replace</th>
+                              <th className="py-2 px-2 text-center w-10">NA</th>
+                            </>
+                          )}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {section.items.map((item) => (
+                          <tr key={item.id} className="hover:bg-slate-50/50">
+                            <td className="py-2 px-2.5 text-center font-bold text-slate-600 font-mono-numbers">
+                              {item.sn}
+                            </td>
+                            <td className="py-2 px-2.5 font-semibold text-slate-900">{item.name}</td>
+                            <td className="py-2 px-2.5 text-slate-600">
+                              {item.notes || '—'}
+                              {item.readings && (
+                                <div className="font-semibold text-blue-700 font-mono-numbers">{item.readings}</div>
+                              )}
+                            </td>
+
+                            {isReadings ? (
+                              <td className="py-2 px-2.5 text-center font-bold text-blue-700 font-mono-numbers">
+                                {item.readings || '—'}
+                              </td>
+                            ) : isPassFail ? (
+                              <>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'pass' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'fail' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✕
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'na' ? (
+                                    <span className="font-bold text-slate-600">—</span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                              </>
+                            ) : isYesNo ? (
+                              <>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'yes' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'no' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✕
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'na' ? (
+                                    <span className="font-bold text-slate-600">—</span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                              </>
+                            ) : isOkFaulty ? (
+                              <>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'ok' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'faulty' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✕
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'na' ? (
+                                    <span className="font-bold text-slate-600">—</span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                {/* Good */}
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'good' || item.status === 'pass' || item.status === 'yes' || item.status === 'ok' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                {/* Repair */}
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'repair' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold shadow-2xs">
+                                      ⚠
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                {/* Replace */}
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'replace' || item.status === 'fail' || item.status === 'no' || item.status === 'faulty' ? (
+                                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold shadow-2xs">
+                                      ✕
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                                {/* NA */}
+                                <td className="py-2 px-2 text-center">
+                                  {item.status === 'na' ? (
+                                    <span className="font-bold text-slate-600">—</span>
+                                  ) : (
+                                    <span className="text-slate-300">○</span>
+                                  )}
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Photo Evidence Embeds */}
+          {/* Photo Evidence Embeds with Full-Detail Lightbox Zoom */}
           {report.photos && report.photos.length > 0 && (
             <div className="space-y-4 page-break-inside-avoid">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
-                Photographic Verification
-              </h3>
+              <div className="flex items-center justify-between border-b border-slate-300 pb-1">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900">
+                  Photographic Verification ({report.photos.length})
+                </h3>
+                <span className="text-[11px] text-slate-500">Click any photo to inspect high-resolution detail</span>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {report.photos.map((photo, i) => (
-                  <div key={photo.id} className="border border-slate-200 rounded-lg p-2 bg-slate-50">
-                    <img
-                      src={photo.url}
-                      alt={photo.caption}
-                      className="h-40 w-full object-cover rounded border border-slate-200"
-                      referrerPolicy="no-referrer"
-                    />
+                  <div
+                    key={photo.id}
+                    onClick={() => setLightboxPhoto(photo)}
+                    className="group relative cursor-pointer border border-slate-200 rounded-lg p-2 bg-slate-50 hover:border-slate-400 hover:shadow-md transition-all"
+                  >
+                    <div className="relative overflow-hidden rounded">
+                      <img
+                        src={photo.url}
+                        alt={photo.caption}
+                        className="h-40 w-full object-cover rounded border border-slate-200 transition-transform duration-200 group-hover:scale-102"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <span className="rounded-md bg-slate-900/80 px-2 py-1 text-[11px] font-semibold text-white flex items-center gap-1">
+                          <ZoomIn className="h-3 w-3" /> Inspect Detail
+                        </span>
+                      </div>
+                    </div>
                     <div className="mt-2 text-[11px]">
                       <span className="font-bold text-slate-900">
                         {photo.snItem ? `${photo.snItem}. ${photo.itemName || ''}` : `Evidence #${i + 1}`}
                       </span>
-                      <p className="text-slate-600 text-[10px] mt-0.5">{photo.caption}</p>
+                      <p className="text-slate-600 text-[10px] mt-0.5 line-clamp-2">{photo.caption}</p>
                     </div>
                   </div>
                 ))}
@@ -298,11 +439,11 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-slate-600 w-36">Asset Safe to Use:</span>
                   {report.summary.assetSafeToUse ? (
-                    <span className="bg-emerald-600 text-white font-bold px-3 py-0.5 rounded text-xs">
+                    <span className="bg-emerald-600 text-white font-bold px-3 py-0.5 rounded text-xs shadow-2xs">
                       YES
                     </span>
                   ) : (
-                    <span className="bg-rose-600 text-white font-bold px-3 py-0.5 rounded text-xs">
+                    <span className="bg-rose-600 text-white font-bold px-3 py-0.5 rounded text-xs shadow-2xs">
                       NO
                     </span>
                   )}
@@ -390,6 +531,41 @@ export const ReportViewerModal: React.FC<ReportViewerModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Lightbox Modal for Full Resolution Detail Verification */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute top-2 right-2 rounded-full bg-slate-900/80 p-2 text-white hover:bg-slate-800 z-10"
+              aria-label="Close"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img
+              src={lightboxPhoto.url}
+              alt={lightboxPhoto.caption}
+              className="max-h-[80vh] w-auto object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="mt-3 text-center text-xs text-slate-200">
+              <span className="font-bold">
+                {lightboxPhoto.snItem ? `Item #${lightboxPhoto.snItem}: ${lightboxPhoto.itemName || ''} · ` : ''}
+              </span>
+              <span>{lightboxPhoto.caption}</span>
+              {lightboxPhoto.gps && (
+                <div className="text-[11px] text-sky-400 font-mono-numbers mt-0.5">
+                  GPS: {lightboxPhoto.gps.latitude.toFixed(4)}, {lightboxPhoto.gps.longitude.toFixed(4)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* In-app Delete Confirmation Modal (no window.confirm block) */}
       <DeleteConfirmationModal
