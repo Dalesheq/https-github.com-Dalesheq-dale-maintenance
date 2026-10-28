@@ -14,6 +14,7 @@ import { WorkOrder, ReportType } from '../types';
 import { USERS } from '../data/initialData';
 import { REPORT_TEMPLATES } from '../data/reportTemplates';
 import { storageService } from '../services/storageService';
+import { SiteEquipmentDropdown } from './SiteEquipmentDropdown';
 
 interface WorkOrderEditModalProps {
   workOrder: WorkOrder | null;
@@ -208,6 +209,22 @@ export const WorkOrderEditModal: React.FC<WorkOrderEditModalProps> = ({
               className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono-numbers text-slate-900 focus:border-slate-900 focus:outline-hidden"
             />
           </div>
+        </div>
+
+        {/* Site & Equipment Catalog Dropdown */}
+        <div className="rounded-lg border border-red-200 bg-red-50/30 p-2.5">
+          <SiteEquipmentDropdown
+            selectedAssetNumber={assetNumber}
+            selectedFacilityName={facility || clientName}
+            label="Select Official Facility Site & Machinery Asset"
+            onSelect={(selected) => {
+              setClientName(selected.clientGroup);
+              setFacility(`${selected.facilityName}, ${selected.region}`);
+              setLocation(selected.locationAddress);
+              setAssetName(selected.assetName);
+              setAssetNumber(selected.assetNumber);
+            }}
+          />
         </div>
 
         {/* Client & Facility */}

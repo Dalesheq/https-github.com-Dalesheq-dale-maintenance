@@ -28,6 +28,7 @@ import { GPSLocationPicker } from './GPSLocationPicker';
 import { generateDaleAutomationPDF } from '../utils/pdfGenerator';
 import { storageService } from '../services/storageService';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { SiteEquipmentDropdown } from './SiteEquipmentDropdown';
 
 interface ReportEditorProps {
   initialReport: Report;
@@ -367,6 +368,41 @@ export const ReportEditor: React.FC<ReportEditorProps> = ({ initialReport, onBac
             value={report.title}
             onChange={(e) => setReport({ ...report, title: e.target.value })}
             className="mt-1 w-full text-xl font-extrabold text-slate-900 border-b border-transparent hover:border-slate-300 focus:border-slate-900 focus:outline-hidden py-1"
+          />
+        </div>
+
+        {/* Site & Machinery Asset Dropdown Selector */}
+        <div className="rounded-xl border border-red-200 bg-red-50/30 p-3.5 shadow-2xs">
+          <SiteEquipmentDropdown
+            selectedAssetNumber={report.assetDetails.assetNumber}
+            selectedFacilityName={report.assetDetails.name || report.location}
+            label="Select Official Facility Site & Machinery Asset"
+            onSelect={(selected) => {
+              setReport((prev) => ({
+                ...prev,
+                location: `${selected.facilityName}, ${selected.region}`,
+                gps: {
+                  ...prev.gps,
+                  facilityName: selected.facilityName,
+                  address: selected.locationAddress,
+                  latitude: selected.gps?.latitude || prev.gps.latitude,
+                  longitude: selected.gps?.longitude || prev.gps.longitude,
+                },
+                assetDetails: {
+                  ...prev.assetDetails,
+                  name: selected.facilityName,
+                  assetNumber: selected.assetNumber,
+                  category: selected.category || prev.assetDetails.category,
+                },
+                summary: {
+                  ...prev.summary,
+                  customBusinessFields: {
+                    ...prev.summary.customBusinessFields,
+                    clientName: selected.clientGroup,
+                  },
+                },
+              }));
+            }}
           />
         </div>
 

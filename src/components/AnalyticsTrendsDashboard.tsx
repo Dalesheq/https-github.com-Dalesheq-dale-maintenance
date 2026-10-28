@@ -26,6 +26,7 @@ import {
 import { storageService } from '../services/storageService';
 import { ManagementLoginModal } from './ManagementLoginModal';
 import { USERS } from '../data/initialData';
+import { SITE_CATALOG } from '../data/siteCatalog';
 
 interface AnalyticsTrendsDashboardProps {
   reports: Report[];
@@ -63,13 +64,16 @@ export const AnalyticsTrendsDashboard: React.FC<AnalyticsTrendsDashboardProps> =
     return Array.from(set);
   }, [reports, technicianUsers]);
 
-  // Unique plants list for filter
+  // Unique plants list for filter (from recorded reports and full site catalog)
   const plantOptions = useMemo(() => {
     const set = new Set<string>();
     reports.forEach((r) => {
       if (r.assetDetails.name) set.add(r.assetDetails.name);
     });
-    return Array.from(set);
+    SITE_CATALOG.forEach((fac) => {
+      set.add(fac.name);
+    });
+    return Array.from(set).sort();
   }, [reports]);
 
   // Personal statistics for technicians when restricted

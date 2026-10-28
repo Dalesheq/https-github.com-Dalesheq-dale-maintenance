@@ -28,6 +28,7 @@ import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { WorkOrderEditModal } from './WorkOrderEditModal';
 import { WorkOrderDeleteModal } from './WorkOrderDeleteModal';
 import { ManagementLoginModal } from './ManagementLoginModal';
+import { SiteEquipmentDropdown } from './SiteEquipmentDropdown';
 
 interface ManagerDashboardProps {
   reports: Report[];
@@ -797,6 +798,24 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Site & Machinery Asset Quick Picker */}
+            <div className="rounded-lg border border-red-200 bg-red-50/30 p-2.5">
+              <SiteEquipmentDropdown
+                selectedAssetNumber={woAssetNumber}
+                selectedFacilityName={woFacility || woClient}
+                label="Select Official Facility Site & Machinery Asset"
+                onSelect={(selected) => {
+                  setWoClient(selected.clientGroup);
+                  setWoFacility(`${selected.facilityName}, ${selected.region}`);
+                  setWoAssetName(selected.assetName);
+                  setWoAssetNumber(selected.assetNumber);
+                  if (!woTitle.trim()) {
+                    setWoTitle(`Inspect & Service ${selected.assetNumber} (${selected.assetName}) at ${selected.facilityName}`);
+                  }
+                }}
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
