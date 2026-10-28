@@ -125,7 +125,10 @@ export default function App() {
 
   // Start report from an assigned Work Order
   const handleStartReportFromWorkOrder = (wo: WorkOrder) => {
-    const template = REPORT_TEMPLATES[wo.templateType] || REPORT_TEMPLATES.spiral_cooler_double_drum;
+    const template =
+      storageService.getAllTemplates().find((t) => t.type === wo.templateType) ||
+      REPORT_TEMPLATES[wo.templateType] ||
+      REPORT_TEMPLATES.spiral_cooler_double_drum;
     const currentUser = storageService.getCurrentUser();
     const nextNumber = `Dale Automation ${2800 + reports.length + 1}`;
 

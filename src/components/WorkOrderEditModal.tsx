@@ -13,6 +13,7 @@ import {
 import { WorkOrder, ReportType } from '../types';
 import { USERS } from '../data/initialData';
 import { REPORT_TEMPLATES } from '../data/reportTemplates';
+import { storageService } from '../services/storageService';
 
 interface WorkOrderEditModalProps {
   workOrder: WorkOrder | null;
@@ -280,9 +281,9 @@ export const WorkOrderEditModal: React.FC<WorkOrderEditModalProps> = ({
             onChange={(e) => setTemplateType(e.target.value as ReportType)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
           >
-            {Object.values(REPORT_TEMPLATES).map((tmpl) => (
+            {storageService.getAllTemplates().map((tmpl) => (
               <option key={tmpl.type} value={tmpl.type}>
-                {tmpl.title} ({tmpl.sections.length} inspection sections)
+                {tmpl.title} ({tmpl.sections.length} inspection sections) {tmpl.type.startsWith('custom_') ? '(Custom)' : ''}
               </option>
             ))}
           </select>

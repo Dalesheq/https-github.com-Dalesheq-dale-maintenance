@@ -814,9 +814,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                 onChange={(e) => setWoTemplate(e.target.value as ReportType)}
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-hidden"
               >
-                {Object.values(REPORT_TEMPLATES).map((tmpl) => (
+                {storageService.getAllTemplates().map((tmpl) => (
                   <option key={tmpl.type} value={tmpl.type}>
-                    {tmpl.title}
+                    {tmpl.title} {tmpl.type.startsWith('custom_') ? '(Custom / Imported)' : ''}
                   </option>
                 ))}
               </select>

@@ -15,12 +15,14 @@ import {
   ChevronRight,
   Trash2,
   ShieldAlert,
+  UploadCloud,
 } from 'lucide-react';
 import { Report, ReportType } from '../types';
 import { REPORT_TEMPLATES, ReportTemplate } from '../data/reportTemplates';
 import { generateDaleAutomationPDF } from '../utils/pdfGenerator';
 import { storageService } from '../services/storageService';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { TemplateImportModal } from './TemplateImportModal';
 
 interface ReportsListProps {
   reports: Report[];
@@ -48,6 +50,7 @@ export const ReportsList: React.FC<ReportsListProps> = ({
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const currentUser = storageService.getCurrentUser();
   const isAdmin = currentUser.role === 'admin';
@@ -111,14 +114,24 @@ export const ReportsList: React.FC<ReportsListProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsTemplateModalOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-slate-800 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Create New Report
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors"
+          >
+            <UploadCloud className="h-4 w-4 text-red-600" />
+            Import Template (PDF/Excel/CSV)
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsTemplateModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-slate-800 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Create New Report
+          </button>
+        </div>
       </div>
 
       {/* Admin Privileges Active Banner */}
@@ -374,23 +387,36 @@ export const ReportsList: React.FC<ReportsListProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
               <div className="text-xs text-slate-700">
-                <span className="font-bold text-slate-900 block">Need a site-specific inspection sheet?</span>
-                Assemble custom machine checklists with pre-populated Dale Automation components.
+                <span className="font-bold text-slate-900 block">Have an existing checklist or need a custom sheet?</span>
+                Import directly from PDF, Excel (.xlsx, .xls) or CSV, or assemble custom checklists with pre-populated components.
               </div>
-              {onOpenCustomBuilder && (
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     setIsTemplateModalOpen(false);
-                    onOpenCustomBuilder();
+                    setIsImportModalOpen(true);
                   }}
-                  className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors shadow-xs"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-100 transition-colors shadow-2xs inline-flex items-center gap-1.5"
                 >
-                  Open Custom Builder
+                  <UploadCloud className="h-3.5 w-3.5 text-red-600" />
+                  Import File
                 </button>
-              )}
+                {onOpenCustomBuilder && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTemplateModalOpen(false);
+                      onOpenCustomBuilder();
+                    }}
+                    className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors shadow-xs"
+                  >
+                    Open Custom Builder
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -444,6 +470,18 @@ export const ReportsList: React.FC<ReportsListProps> = ({
         onConfirm={(id) => {
           onDeleteReport(id);
           setReportToDelete(null);
+        }}
+      />
+
+      {/* Inspection Template Importer (PDF, Excel, CSV) */}
+      <TemplateImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onTemplateImportedAndSaved={(tmpl) => {
+          // Template is automatically saved to database by storageService inside modal
+        }}
+        onStartReportWithTemplate={(tmpl) => {
+          onCreateReportFromTemplate(tmpl);
         }}
       />
     </div>

@@ -19,7 +19,11 @@ import {
   Copy,
   Clock,
   Check,
+  UploadCloud,
+  FileSpreadsheet,
+  AlertCircle,
 } from 'lucide-react';
+import { TemplateImportModal } from './TemplateImportModal';
 
 interface CustomTemplateBuilderProps {
   onStartReportWithTemplate: (template: ReportTemplate) => void;
@@ -78,6 +82,8 @@ export const CustomTemplateBuilder: React.FC<CustomTemplateBuilderProps> = ({
   ]);
 
   const [savedSuccessMessage, setSavedSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [customTemplates, setCustomTemplates] = useState<ReportTemplate[]>(storageService.getCustomTemplates());
   const [selectedLibraryItem, setSelectedLibraryItem] = useState<PrepopulatedComponent | null>(null);
 
@@ -239,20 +245,22 @@ export const CustomTemplateBuilder: React.FC<CustomTemplateBuilderProps> = ({
   // Save template
   const handleSaveTemplate = () => {
     if (sections.length === 0 || totalItemsCount === 0) {
-      alert('Please add at least one section and checklist item before saving.');
+      setErrorMessage('Please add at least one section and checklist item before saving.');
+      setTimeout(() => setErrorMessage(null), 3500);
       return;
     }
     const template = buildCurrentTemplate();
     storageService.saveCustomTemplate(template);
     setCustomTemplates(storageService.getCustomTemplates());
-    setSavedSuccessMessage(`Template "${template.title}" saved successfully!`);
+    setSavedSuccessMessage(`Template "${template.title}" saved successfully to database!`);
     setTimeout(() => setSavedSuccessMessage(null), 3000);
   };
 
   // Save & Start
   const handleSaveAndStart = () => {
     if (sections.length === 0 || totalItemsCount === 0) {
-      alert('Please add at least one section and checklist item before starting.');
+      setErrorMessage('Please add at least one section and checklist item before starting.');
+      setTimeout(() => setErrorMessage(null), 3500);
       return;
     }
     const template = buildCurrentTemplate();
@@ -293,11 +301,19 @@ export const CustomTemplateBuilder: React.FC<CustomTemplateBuilderProps> = ({
               </h2>
             </div>
             <p className="mt-1 text-sm text-slate-600">
-              Build custom Dale Automation check sheets using pre-populated industrial machinery components or custom fields. All evaluation criteria support rapid dropdown menus.
+              Build custom Dale Automation check sheets using pre-populated industrial machinery components or import existing PDF, Excel, and CSV templates.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              <UploadCloud className="h-4 w-4 text-red-600" />
+              Import File (PDF / Excel / CSV)
+            </button>
             <button
               type="button"
               onClick={handleSaveTemplate}
@@ -316,6 +332,14 @@ export const CustomTemplateBuilder: React.FC<CustomTemplateBuilderProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Error Alert Banner */}
+        {errorMessage && (
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         {/* Success Alert Banner */}
         {savedSuccessMessage && (
@@ -737,6 +761,19 @@ export const CustomTemplateBuilder: React.FC<CustomTemplateBuilderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Template Import Modal (PDF, Excel, CSV) */}
+      <TemplateImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onTemplateImportedAndSaved={(tmpl) => {
+          handleLoadCustomTemplate(tmpl);
+          setCustomTemplates(storageService.getCustomTemplates());
+          setSavedSuccessMessage(`Imported "${tmpl.title}" and loaded into editor!`);
+          setTimeout(() => setSavedSuccessMessage(null), 3000);
+        }}
+        onStartReportWithTemplate={onStartReportWithTemplate}
+      />
     </div>
   );
 };
